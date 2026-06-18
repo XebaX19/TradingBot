@@ -254,6 +254,11 @@ Parametros tipicos:
 
 La salida del optimizador incluye ranking, metricas comparativas y score compuesto de robustez.
 
+Persistencia de optimizacion:
+
+- `optimization_runs`
+- `optimization_results`
+
 ### 7. Robust Validation
 
 El sistema incorpora separacion entre datasets de entrenamiento y validacion para reducir sobreajuste.
@@ -324,8 +329,8 @@ src/
     backtest-metrics.service.ts
     backtest.service.ts
     trade.simulator.ts
-    optimizer.ts
-    validator.ts
+    strategy-optimizer.service.ts
+    strategy-validator.service.ts
   notifications/
     telegram.service.ts
   execution/
@@ -417,6 +422,44 @@ npm run validate-strategy
 npm run paper-trading
 npm run live-trading
 ```
+
+### Ejemplos de ejecucion
+
+Backtest simple sobre un rango historico:
+
+```bash
+npm run backtest -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z
+```
+
+Validacion de la configuracion activa con split `70/30`:
+
+```bash
+npm run validate-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7
+```
+
+Optimizacion de parametros con grilla explicita:
+
+```bash
+npm run optimize -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --top=5
+```
+
+Backfill historico para una ventana acotada:
+
+```bash
+npm run backfill-history -- --from=2024-01-01 --to=2024-03-31 --delayMs=1000
+```
+
+Reconciliacion manual para un rango:
+
+```bash
+npm run reconciliation -- --from=2026-06-01 --to=2026-06-10
+```
+
+Notas:
+
+- en los scripts que usan `--from` y `--to` con backtesting conviene usar timestamps UTC completos
+- `validate-strategy` usa la configuracion activa de `env.strategy`
+- `optimize` permite sobrescribir la grilla por linea de comandos y persiste ranking si la base tiene los schemas de optimizacion
 
 ## Diseno tecnico
 

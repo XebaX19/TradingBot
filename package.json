@@ -9,7 +9,10 @@
     "reconciliation": "ts-node src/scripts/manualReconciliation.ts",
     "backfill-history": "ts-node src/scripts/historicalBackfill.ts",
     "test-market-data": "ts-node src/scripts/test-market-data.ts",
-    "test-strategy": "ts-node src/scripts/test-strategy.ts"
+    "test-strategy": "ts-node src/scripts/test-strategy.ts",
+    "backtest": "ts-node src/scripts/run-backtest.ts",
+    "optimize-strategy": "ts-node src/scripts/optimize-strategy.ts",
+    "validate-strategy": "ts-node src/scripts/validate-strategy.ts"
   },
   "keywords": [],
   "author": "",
