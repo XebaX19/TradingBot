@@ -296,25 +296,33 @@ export class CandleReconciliationService {
   ) {
     const intervalMs =
       getIntervalMs(env.market.timeframe);
+    const endExclusive =
+      to.getTime() + intervalMs;
     const rawCandles =
       await this.binance.getCandles(
         env.market.symbol,
         env.market.timeframe,
         from.getTime(),
-        to.getTime() + intervalMs
+        endExclusive - 1
       );
 
-    return rawCandles.map(
-      (candle: any) => ({
-        symbol: env.market.symbol,
-        timeframe: env.market.timeframe,
-        openTime: new Date(candle[0]),
-        open: Number(candle[1]),
-        high: Number(candle[2]),
-        low: Number(candle[3]),
-        close: Number(candle[4]),
-        volume: Number(candle[5])
-      })
-    );
+    return rawCandles
+      .filter(
+        (candle: any) =>
+          candle[0] >= from.getTime() &&
+          candle[0] <= to.getTime()
+      )
+      .map(
+        (candle: any) => ({
+          symbol: env.market.symbol,
+          timeframe: env.market.timeframe,
+          openTime: new Date(candle[0]),
+          open: Number(candle[1]),
+          high: Number(candle[2]),
+          low: Number(candle[3]),
+          close: Number(candle[4]),
+          volume: Number(candle[5])
+        })
+      );
   }
 }
