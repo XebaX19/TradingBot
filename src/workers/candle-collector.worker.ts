@@ -1,14 +1,17 @@
 import cron from "node-cron";
+import { CandleReconciliationService } from "../data/reconciliation.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { BinanceClient } from "../data/binance.client";
 import { env } from "../config/env";
 import { logger } from "../shared/logger";
 import { retry } from "../shared/retry.utils";
+import { getIntervalMs, getLastClosedCandleOpenTimeUtc } from "../shared/date.utils";
 
 export class CandleCollectorWorker {
   constructor(
     private candleRepository: CandleRepository,
-    private binance: BinanceClient
+    private binance: BinanceClient,
+    private reconciliationService?: CandleReconciliationService
   ) { }
 
   start() {
@@ -33,28 +36,92 @@ export class CandleCollectorWorker {
 
   async collect() {
     try {
-      const candles =
-        await retry(
-          () => this.binance.getLastClosedCandle(
-            env.market.symbol,
-            env.market.timeframe
-          ),
-          5, //retry
-          60000 //backoff (lo que espera hasta volver a reintentar): 1 minuto
+      const lastStoredOpenTime =
+        await this.candleRepository.getLastCandle(
+          env.market.symbol,
+          env.market.timeframe
+        );
+      const lastClosedOpenTime =
+        getLastClosedCandleOpenTimeUtc(
+          new Date(),
+          env.market.timeframe
+        );
+      const intervalMs =
+        getIntervalMs(env.market.timeframe);
+
+      if (!lastStoredOpenTime) {
+        const candle =
+          await retry(
+            () => this.binance.getLastClosedCandle(
+              env.market.symbol,
+              env.market.timeframe
+            ),
+            5,
+            60000
+          );
+
+        if (!candle) {
+          logger.warn(
+            "No candle returned"
+          );
+
+          return;
+        }
+
+        await this.candleRepository.insert(
+          candle
         );
 
-      if (!candles) {
-        logger.warn(
-          "No candle returned"
+        logger.info(
+          `Initial candle saved ${candle.openTime.toISOString()}`
         );
 
         return;
       }
 
-      await this.candleRepository.insert(candles);
+      const normalizedLastStored =
+        new Date(lastStoredOpenTime);
+      const nextExpectedOpenTime =
+        new Date(
+          normalizedLastStored.getTime() +
+          intervalMs
+        );
+
+      if (nextExpectedOpenTime > lastClosedOpenTime) {
+        logger.info(
+          "Collector found no new closed candles to ingest"
+        );
+
+        return;
+      }
+
+      if (!this.reconciliationService) {
+        logger.warn(
+          "Reconciliation service unavailable for automatic gap recovery"
+        );
+
+        return;
+      }
+
+      const recoveredCandles =
+        await retry(
+          () => this.reconciliationService!.recoverRange(
+            nextExpectedOpenTime,
+            lastClosedOpenTime
+          ),
+          5,
+          60000
+        );
+
+      if (recoveredCandles.length === 0) {
+        logger.warn(
+          `Collector expected data between ${nextExpectedOpenTime.toISOString()} and ${lastClosedOpenTime.toISOString()} but recovered nothing`
+        );
+        return;
+      }
 
       logger.info(
-        `Candle saved ${candles.openTime}`
+        `Collector recovered ${recoveredCandles.length} candle(s) from ${nextExpectedOpenTime.toISOString()} to ${lastClosedOpenTime.toISOString()}`
       );
     }
     catch (error) {

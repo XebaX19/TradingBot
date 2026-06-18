@@ -1,0 +1,14 @@
+CREATE TABLE orders
+(
+    id BIGINT IDENTITY PRIMARY KEY,
+    signal_id VARCHAR(100) NOT NULL,
+    symbol VARCHAR(20) NOT NULL,
+    side VARCHAR(10) NOT NULL,
+    trading_mode VARCHAR(20) NOT NULL,
+    expected_price DECIMAL(18,8) NOT NULL,
+    quantity DECIMAL(18,8) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    detail NVARCHAR(MAX) NULL,
+    created_at DATETIME2 DEFAULT SYSUTCDATETIME(),
+    updated_at DATETIME2 DEFAULT SYSUTCDATETIME()
+);

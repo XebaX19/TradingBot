@@ -1,12 +1,20 @@
 import cron from "node-cron";
+import { env } from "../config/env";
 import { CandleReconciliationService } from "../data/reconciliation.service";
 import { ReconciliationRepository } from "../repositories/reconciliation.repository";
+import { CandleRepository } from "../repositories/candle.repository";
 import { logger } from "../shared/logger";
+import {
+  clampToLastClosedCandleUtc,
+  endOfUtcDay,
+  startOfUtcDay
+} from "../shared/date.utils";
 
 export class CandleReconciliationWorker {
   constructor(
     private reconciliationService: CandleReconciliationService,
-    private reconciliationRepository: ReconciliationRepository
+    private reconciliationRepository: ReconciliationRepository,
+    private candleRepository?: CandleRepository
   ) { }
 
   start() {
@@ -31,16 +39,8 @@ export class CandleReconciliationWorker {
 
   private async execute() {
     try {
-      const today = new Date();
-      const yesterday = new Date(today);
-
-      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-
-      const from = new Date(yesterday);
-      from.setUTCHours(0, 0, 0, 0);
-
-      const to = new Date(yesterday);
-      to.setUTCHours(23, 0, 0, 0);
+      const { from, to } =
+        await this.resolveReconciliationWindow();
 
       logger.info(
         `
@@ -56,13 +56,13 @@ Period: ${from.toISOString()} - ${to.toISOString()}
       );
 
       await this.reconciliationRepository.saveLog({
-        symbol: process.env.SYMBOL,
-        timeframe: process.env.TIMEFRAME,
+        symbol: env.market.symbol,
+        timeframe: env.market.timeframe,
         status: "SUCCESS",
         checked: result.checked,
         missing: result.missing,
         recovered: result.recovered,
-        errors: 0,
+        errors: result.invalid + result.duplicates,
         details: JSON.stringify(result)
       });
 
@@ -76,5 +76,74 @@ Period: ${from.toISOString()} - ${to.toISOString()}
         error
       );
     }
+  }
+
+  /**
+   * Si detectamos que el dataset esta retrasado respecto de la ultima vela
+   * cerrada, reconciliamos todos los dias impactados completos. No validamos
+   * solo el hueco puntual porque eso podria dejar faltantes mas viejos dentro
+   * del mismo dia sin revisar.
+   */
+  private async resolveReconciliationWindow() {
+    const now =
+      new Date();
+    const lastClosedOpenTime =
+      clampToLastClosedCandleUtc(
+        now,
+        now,
+        env.market.timeframe
+      );
+    const defaultDay =
+      new Date(lastClosedOpenTime);
+
+    defaultDay.setUTCDate(
+      defaultDay.getUTCDate() - 1
+    );
+
+    if (!this.candleRepository) {
+      return {
+        from: startOfUtcDay(defaultDay),
+        to: endOfUtcDay(
+          defaultDay,
+          env.market.timeframe
+        )
+      };
+    }
+
+    const lastStoredOpenTime =
+      await this.candleRepository.getLastCandle(
+        env.market.symbol,
+        env.market.timeframe
+      );
+
+    if (!lastStoredOpenTime) {
+      return {
+        from: startOfUtcDay(defaultDay),
+        to: endOfUtcDay(
+          defaultDay,
+          env.market.timeframe
+        )
+      };
+    }
+
+    const normalizedLastStored =
+      new Date(lastStoredOpenTime);
+
+    if (normalizedLastStored >= lastClosedOpenTime) {
+      return {
+        from: startOfUtcDay(defaultDay),
+        to: endOfUtcDay(
+          defaultDay,
+          env.market.timeframe
+        )
+      };
+    }
+
+    return {
+      from: startOfUtcDay(
+        normalizedLastStored
+      ),
+      to: lastClosedOpenTime
+    };
   }
 }

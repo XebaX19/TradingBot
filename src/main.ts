@@ -7,6 +7,9 @@ import { CandleCollectorWorker } from "./workers/candle-collector.worker";
 import { CandleReconciliationWorker } from "./workers/candle-reconciliation.worker";
 import { StrategyWorker } from "./workers/strategy.worker";
 import { MarketDataService } from "./data/market-data.service";
+import { OrderExecutorService } from "./execution/order-executor.service";
+import { RiskManager } from "./execution/risk-manager";
+import { OrderRepository } from "./repositories/order.repository";
 import { HybridStrategy } from "./strategy/hybrid.strategy";
 import { SignalRepository } from "./repositories/signal.repository";
 
@@ -21,7 +24,8 @@ const reconciliationService = new CandleReconciliationService(
 //Worker Collector
 const collector = new CandleCollectorWorker(
   candleRepository,
-  binance
+  binance,
+  reconciliationService
 );
 
 collector.start();
@@ -29,7 +33,8 @@ collector.start();
 //Worker Reconciliation
 const reconciliation = new CandleReconciliationWorker(
   reconciliationService,
-  new ReconciliationRepository(sql)
+  new ReconciliationRepository(sql),
+  candleRepository
 );
 
 reconciliation.start();
@@ -41,7 +46,11 @@ const strategyWorker =
       new CandleRepository(sql)
     ),
     new HybridStrategy(),
-    new SignalRepository(sql)
+    new SignalRepository(sql),
+    new OrderExecutorService(
+      new RiskManager(),
+      new OrderRepository(sql)
+    )
   );
 
 strategyWorker.start();

@@ -48,6 +48,7 @@ Responsabilidad:
 - evitar duplicados
 - reanudar correctamente despues de reinicios
 - mantener continuidad temporal del dataset base
+- recuperar automaticamente velas faltantes si el proceso estuvo caido varias horas
 
 Timeframe base:
 
@@ -84,6 +85,10 @@ Responsabilidad:
 - validar continuidad temporal
 - recuperar datos faltantes desde el exchange
 - auditar cada ejecucion
+
+Criterio operativo:
+
+- si se detecta un gap dentro de un dia, la reconciliacion revalida el dia completo afectado, no solo la hora faltante
 
 Frecuencia:
 
@@ -308,6 +313,12 @@ Capacidades de la capa de ejecucion:
 - logging de request/response con exchange
 - trazabilidad completa por trade
 
+Persistencia operativa:
+
+- `orders`
+- `order_executions`
+- `positions`
+
 La decision de operar en vivo depende de metricas historicas, controles de riesgo y habilitacion explicita de entorno.
 
 ## Arquitectura
@@ -400,6 +411,11 @@ BACKTEST_INITIAL_CAPITAL=10000
 BACKTEST_POSITION_SIZE_PERCENT=10
 BACKTEST_COMMISSION_PERCENT=0.1
 BACKTEST_SLIPPAGE_PERCENT=0.05
+
+PAPER_TRADING_CAPITAL=10000
+PAPER_POSITION_SIZE_PERCENT=10
+LIVE_TRADING_CAPITAL=10000
+LIVE_POSITION_SIZE_PERCENT=5
 
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=

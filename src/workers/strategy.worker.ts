@@ -1,4 +1,5 @@
 import cron from "node-cron";
+import { OrderExecutorService } from "../execution/order-executor.service";
 import { MarketDataService } from "../data/market-data.service";
 import { HybridStrategy } from "../strategy/hybrid.strategy";
 import { logger } from "../shared/logger";
@@ -8,7 +9,8 @@ export class StrategyWorker {
   constructor(
     private marketData: MarketDataService,
     private strategy: HybridStrategy,
-    private signalRepository: SignalRepository
+    private signalRepository: SignalRepository,
+    private orderExecutor?: OrderExecutorService
   ) { }
 
   start() {
@@ -70,6 +72,12 @@ export class StrategyWorker {
       await this.signalRepository.save(
         signal
       );
+
+      if (this.orderExecutor) {
+        await this.orderExecutor.handleSignal(
+          signal
+        );
+      }
 
       logger.info(
         `Signal saved ${signal.signalId}`

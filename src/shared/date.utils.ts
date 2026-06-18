@@ -2,9 +2,7 @@ export function generateHourlyRange(
   from: Date,
   to: Date
 ): Date[] {
-
   const result: Date[] = [];
-
   let current =
     new Date(from);
 
@@ -60,4 +58,55 @@ export function clampToLastClosedCandleUtc(to: Date, now: Date, interval: string
   return to < lastClosedCandleOpenTime
     ? to
     : lastClosedCandleOpenTime;
+}
+
+export function startOfUtcDay(
+  date: Date
+) {
+  const result =
+    new Date(date);
+
+  result.setUTCHours(0, 0, 0, 0);
+
+  return result;
+}
+
+export function endOfUtcDay(
+  date: Date,
+  interval: string
+) {
+  const start =
+    startOfUtcDay(date);
+  const lastClosedInDay =
+    new Date(
+      start.getTime() +
+      (24 * 60 * 60 * 1000) -
+      getIntervalMs(interval)
+    );
+
+  return lastClosedInDay;
+}
+
+export function listUtcDaysBetween(
+  from: Date,
+  to: Date
+) {
+  const result: Date[] = [];
+  let current =
+    startOfUtcDay(from);
+  const last =
+    startOfUtcDay(to);
+
+  while (current <= last) {
+    result.push(
+      new Date(current)
+    );
+    current =
+      new Date(
+        current.getTime() +
+        (24 * 60 * 60 * 1000)
+      );
+  }
+
+  return result;
 }

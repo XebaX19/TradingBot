@@ -2,6 +2,11 @@ import { SqlService } from "../database/sql.service";
 import { Candle } from "../models/candle.model";
 import { logger } from "../shared/logger";
 
+interface CandleDuplicateRow {
+  open_time: Date;
+  total: number;
+}
+
 export class CandleRepository {
   constructor(
     private sql: SqlService
@@ -24,6 +29,25 @@ export class CandleRepository {
         });
 
     return result.recordset[0].last;
+  }
+
+  async getFirstCandle(
+    symbol: string,
+    timeframe: string
+  ) {
+    const result =
+      await this.sql.query(`
+        SELECT MIN(open_time) first
+        FROM candles
+        WHERE symbol=@symbol
+        AND timeframe=@timeframe
+        `,
+        {
+          symbol,
+          timeframe
+        });
+
+    return result.recordset[0].first;
   }
 
   async getLastCandles(
@@ -136,6 +160,45 @@ export class CandleRepository {
     );
   }
 
+  async getDuplicateOpenTimes(
+    symbol: string,
+    timeframe: string,
+    from: Date,
+    to: Date
+  ) {
+    const result =
+      await this.sql.query(
+        `
+        SELECT
+          open_time,
+          COUNT(*) total
+        FROM candles
+        WHERE symbol=@symbol
+        AND timeframe=@timeframe
+        AND open_time >= @from
+        AND open_time <= @to
+        GROUP BY open_time
+        HAVING COUNT(*) > 1
+        ORDER BY open_time ASC
+        `,
+        {
+          symbol,
+          timeframe,
+          from,
+          to
+        }
+      );
+
+    return result.recordset.map(
+      (row: CandleDuplicateRow) => ({
+        openTime:
+          new Date(row.open_time),
+        total:
+          Number(row.total)
+      })
+    );
+  }
+
   async exists(
     symbol: string,
     timeframe: string,
@@ -194,7 +257,7 @@ export class CandleRepository {
       (row: any) => ({
         symbol: row.symbol,
         timeframe: row.timeframe,
-        openTime: row.open_time,
+        openTime: new Date(row.open_time),
         open: Number(row.open),
         high: Number(row.high),
         low: Number(row.low),

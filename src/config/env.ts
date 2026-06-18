@@ -30,6 +30,20 @@ function getNumber(
     : fallback;
 }
 
+function getBoolean(
+  value: string | undefined,
+  fallback: boolean
+) {
+  if (
+    value === undefined ||
+    value.trim() === ""
+  ) {
+    return fallback;
+  }
+
+  return value.trim().toLowerCase() === "true";
+}
+
 export const env = {
   sql: {
     server: process.env.SQL_SERVER!,
@@ -105,6 +119,35 @@ export const env = {
     slippagePercent: getNumber(
       process.env.BACKTEST_SLIPPAGE_PERCENT,
       0.05
+    )
+  },
+
+  execution: {
+    mode:
+      (
+        process.env.TRADING_MODE ||
+        "signal-only"
+      ) as "signal-only" | "paper-trading" | "live-trading",
+    liveTradingEnabled:
+      getBoolean(
+        process.env.LIVE_TRADING_ENABLED,
+        false
+      ),
+    paperCapital: getNumber(
+      process.env.PAPER_TRADING_CAPITAL,
+      10000
+    ),
+    liveCapital: getNumber(
+      process.env.LIVE_TRADING_CAPITAL,
+      10000
+    ),
+    paperPositionSizePercent: getNumber(
+      process.env.PAPER_POSITION_SIZE_PERCENT,
+      10
+    ),
+    livePositionSizePercent: getNumber(
+      process.env.LIVE_POSITION_SIZE_PERCENT,
+      5
     )
   }
 };
