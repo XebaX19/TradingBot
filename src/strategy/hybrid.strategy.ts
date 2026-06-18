@@ -1,58 +1,80 @@
+import { env } from "../config/env";
 import { Candle } from "../models/candle.model";
 import { TradeSignal } from "../models/trade-signal.model";
 import { generateSignalId } from "../shared/signalid.utils";
 import {
+  calculateAverage,
   calculateEMA,
-  calculateRSI,
-  calculateAverage
+  calculateRSI
 } from "./indicators";
 
+export interface HybridStrategyConfig {
+  dropPercent: number;
+  rsiPeriod: number;
+  rsiLimit: number;
+  volumeMultiplier: number;
+  volumeLookbackCandles: number;
+  recentHighLookbackCandles: number;
+  takeProfitPercent: number;
+  stopLossPercent: number;
+  maxHoldingCandles: number;
+}
+
 export class HybridStrategy {
-  private readonly strategyName = "HYYBRID_RSI_EMA200";
+  private readonly strategyName =
+    "HYBRID_RSI_EMA200";
 
   constructor(
-    private config = {
-      dropPercent: 8,
-      rsiLimit: 35,
-      volumeMultiplier: 1,
-      takeProfitPercent: 5,
-      stopLossPercent: 3,
-      maxHoldingCandles: 720 //30 días como máximo queda abierta la operación
-    }
+    private config: HybridStrategyConfig = env.strategy
   ) { }
 
+  /**
+   * Evalua la ultima vela cerrada disponible.
+   *
+   * Punto critico:
+   * La estrategia trabaja siempre sobre series ya cerradas. La ejecucion real
+   * o simulada de la orden debe ocurrir en la vela siguiente para evitar
+   * look-ahead bias.
+   */
   evaluate(
     hourly: Candle[],
     daily: Candle[]
   ): TradeSignal | null {
-    const lastHourly = hourly[hourly.length - 1];
-    const lastPrice = lastHourly.close;
+    if (
+      hourly.length === 0 ||
+      daily.length === 0
+    ) {
+      return null;
+    }
 
-    //EMA 200 diaria
-    const dailyCloses = daily.map(x => x.close);
+    const lastHourly =
+      hourly[hourly.length - 1];
+    const lastPrice =
+      lastHourly.close;
 
+    const dailyCloses =
+      daily.map(candle => candle.close);
     const ema200 =
       calculateEMA(
         dailyCloses,
         200
       );
 
-    if (!ema200) {
+    if (ema200 === null) {
       return null;
     }
 
-    //Filtro tendencia
+    // Solo se consideran largos cuando el cierre actual esta sobre la EMA200 diaria.
     if (lastPrice <= ema200) {
       return null;
     }
 
-    //RSI
-    const hourlyCloses = hourly.map(x => x.close);
-
+    const hourlyCloses =
+      hourly.map(candle => candle.close);
     const rsi =
       calculateRSI(
         hourlyCloses,
-        14
+        this.config.rsiPeriod
       );
 
     if (
@@ -62,20 +84,27 @@ export class HybridStrategy {
       return null;
     }
 
-    //Caída desde máximo reciente
-    const recent = hourly.slice(-24 * 7);
+    const recentCandles =
+      hourly.slice(
+        -this.config.recentHighLookbackCandles
+      );
 
-    const max =
+    if (recentCandles.length === 0) {
+      return null;
+    }
+
+    const recentHigh =
       Math.max(
-        ...
-        recent.map(x => x.high)
+        ...recentCandles.map(
+          candle => candle.high
+        )
       );
 
     const dropPercent =
       (
-        (max - lastPrice)
+        (recentHigh - lastPrice)
         /
-        max
+        recentHigh
       )
       *
       100;
@@ -87,15 +116,24 @@ export class HybridStrategy {
       return null;
     }
 
-    //Volumen
-    const volumes = hourly.slice(-20).map(x => x.volume);
-
-    const avgVolume =
-      calculateAverage(
-        volumes
+    const volumeWindow =
+      hourly.slice(
+        -this.config.volumeLookbackCandles
       );
 
-    const volumeRatio = lastHourly.volume / avgVolume;
+    if (volumeWindow.length === 0) {
+      return null;
+    }
+
+    const averageVolume =
+      calculateAverage(
+        volumeWindow.map(
+          candle => candle.volume
+        )
+      );
+
+    const volumeRatio =
+      lastHourly.volume / averageVolume;
 
     if (
       volumeRatio <
@@ -104,21 +142,20 @@ export class HybridStrategy {
       return null;
     }
 
-    //Stoploss y Takeprofit
     const stopLoss =
       lastPrice *
       (
         1 -
-        this.config.stopLossPercent / 100
+        (this.config.stopLossPercent / 100)
       );
 
     const takeProfit =
       lastPrice *
       (
         1 +
-        this.config.takeProfitPercent / 100
+        (this.config.takeProfitPercent / 100)
       );
-    
+
     const signalId =
       generateSignalId(
         lastHourly.symbol,
@@ -135,19 +172,22 @@ export class HybridStrategy {
       stopLoss,
       takeProfit,
       timestamp: lastHourly.openTime,
-      strategy: "HYBRID_RSI_EMA200",
-      risk: {
-        stopLossPercent: this.config.stopLossPercent,
-        takeProfitPercent: this.config.takeProfitPercent,
-        riskReward:
-          this.config.takeProfitPercent /
-          this.config.stopLossPercent
-      },
+      strategy: this.strategyName,
       indicators: {
         rsi,
         ema200,
         dropPercent,
         volumeRatio
+      },
+      risk: {
+        stopLossPercent:
+          this.config.stopLossPercent,
+        takeProfitPercent:
+          this.config.takeProfitPercent,
+        riskReward:
+          this.config.takeProfitPercent
+          /
+          this.config.stopLossPercent
       },
       reason: [
         "Precio sobre EMA200",
@@ -155,6 +195,6 @@ export class HybridStrategy {
         "Correccion fuerte",
         "Volumen confirmado"
       ]
-    }
+    };
   }
 }
