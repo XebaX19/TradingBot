@@ -119,6 +119,14 @@ export const env = {
     slippagePercent: getNumber(
       process.env.BACKTEST_SLIPPAGE_PERCENT,
       0.05
+    ),
+    minTradeNotional: getNumber(
+      process.env.BACKTEST_MIN_TRADE_NOTIONAL,
+      10
+    ),
+    quantityStep: getNumber(
+      process.env.BACKTEST_QUANTITY_STEP,
+      0.00001
     )
   },
 

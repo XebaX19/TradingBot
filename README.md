@@ -192,6 +192,7 @@ Responsabilidad:
 - aplicar tamano de posicion
 - descontar comision
 - aplicar slippage
+- respetar min notional y step size de cantidad
 - respetar take profit y stop loss
 - construir curva de equity
 - registrar trades simulados
@@ -205,6 +206,7 @@ Arquitectura interna del backtesting:
 - `backtest-metrics.service`: consolida metricas y drawdown
 - `backtest.service`: orquesta la corrida cuantitativa
 - `backtest.repository`: persiste corridas y operaciones simuladas
+- `walk-forward.service`: ejecuta multiples ventanas training/validation secuenciales
 
 Cada trade almacenado contiene:
 
@@ -243,6 +245,7 @@ Metricas principales:
 - mejor operacion
 - peor operacion
 - curva de equity realizada
+- drawdown flotante conservador intratrade
 
 Validaciones previas al backtest:
 
@@ -298,6 +301,8 @@ Metricas adicionales:
 - estabilidad de drawdown
 
 El criterio de aceptacion no es "maximo retorno", sino consistencia ajustada por riesgo.
+
+Ademas del split simple, el sistema soporta `walk-forward analysis` sobre multiples ventanas temporales para validar estabilidad fuera de muestra en distintos periodos del mercado.
 
 ### 8. Order Execution Layer
 
@@ -425,6 +430,8 @@ BACKTEST_INITIAL_CAPITAL=10000
 BACKTEST_POSITION_SIZE_PERCENT=10
 BACKTEST_COMMISSION_PERCENT=0.1
 BACKTEST_SLIPPAGE_PERCENT=0.05
+BACKTEST_MIN_TRADE_NOTIONAL=10
+BACKTEST_QUANTITY_STEP=0.00001
 
 PAPER_TRADING_CAPITAL=10000
 PAPER_POSITION_SIZE_PERCENT=10
@@ -446,9 +453,12 @@ npm run backfill-history
 npm run reconciliation
 npm run test-market-data
 npm run test-strategy
+npm run test-backtest-core
 npm run backtest
+npm run optimize
 npm run optimize-strategy
 npm run validate-strategy
+npm run walk-forward
 npm run paper-trading
 npm run live-trading
 ```
@@ -471,6 +481,12 @@ Optimizacion de parametros con grilla explicita:
 
 ```bash
 npm run optimize-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --top=5
+```
+
+Walk-forward sobre multiples ventanas:
+
+```bash
+npm run walk-forward -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --trainDays=730 --validationDays=180 --stepDays=90 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5
 ```
 
 Backfill historico para una ventana acotada:

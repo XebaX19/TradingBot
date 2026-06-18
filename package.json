@@ -12,8 +12,10 @@
     "test-strategy": "ts-node src/scripts/test-strategy.ts",
     "test-backtest-core": "ts-node src/scripts/test-backtest-core.ts",
     "backtest": "ts-node src/scripts/run-backtest.ts",
+    "optimize": "ts-node src/scripts/optimize-strategy.ts",
     "optimize-strategy": "ts-node src/scripts/optimize-strategy.ts",
-    "validate-strategy": "ts-node src/scripts/validate-strategy.ts"
+    "validate-strategy": "ts-node src/scripts/validate-strategy.ts",
+    "walk-forward": "ts-node src/scripts/run-walk-forward.ts"
   },
   "keywords": [],
   "author": "",
