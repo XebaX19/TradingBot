@@ -6,21 +6,21 @@ import {
 } from "../models/backtest.model";
 
 export class BacktestMetricsService {
-  /**
-   * Consolida el resultado de una corrida a partir de los trades ya
-   * simulados y de la curva de equity realizada.
-   */
   calculate(
-    trades: BacktestTrade[],
-    equityCurve: BacktestEquityPoint[],
+    execution: {
+      trades: BacktestTrade[];
+      equityCurve: BacktestEquityPoint[];
+      dataQuality: BacktestResult["dataQuality"];
+      context: BacktestResult["context"];
+    },
     from: Date,
     to: Date,
     initialCapital: number
   ): BacktestResult {
     const summary =
       this.buildSummary(
-        trades,
-        equityCurve,
+        execution.trades,
+        execution.equityCurve,
         from,
         to,
         initialCapital
@@ -28,8 +28,14 @@ export class BacktestMetricsService {
 
     return {
       ...summary,
-      equityCurve,
-      trades
+      dataQuality:
+        execution.dataQuality,
+      context:
+        execution.context,
+      equityCurve:
+        execution.equityCurve,
+      trades:
+        execution.trades
     };
   }
 
@@ -92,6 +98,29 @@ export class BacktestMetricsService {
       losses === 0
         ? 0
         : grossLoss / losses;
+    const averageHoldingHours =
+      totalTrades === 0
+        ? 0
+        : trades.reduce(
+          (sum, trade) =>
+            sum + trade.holdingHours,
+          0
+        ) / totalTrades;
+    const totalHours =
+      Math.max(
+        1,
+        (
+          to.getTime() - from.getTime()
+        ) / (60 * 60 * 1000)
+      );
+    const exposureTimePercent =
+      (
+        trades.reduce(
+          (sum, trade) =>
+            sum + trade.holdingHours,
+          0
+        ) / totalHours
+      ) * 100;
 
     return {
       from,
@@ -110,8 +139,24 @@ export class BacktestMetricsService {
       profitFactor,
       averageWin,
       averageLoss,
+      expectancy:
+        totalTrades === 0
+          ? 0
+          : netProfit / totalTrades,
+      averageHoldingHours,
+      exposureTimePercent,
       maxDrawdown:
         this.calculateMaxDrawdown(equityCurve),
+      maxConsecutiveWins:
+        this.calculateMaxConsecutive(
+          trades,
+          "WIN"
+        ),
+      maxConsecutiveLosses:
+        this.calculateMaxConsecutive(
+          trades,
+          "LOSS"
+        ),
       bestTrade:
         this.getBestTrade(trades),
       worstTrade:
@@ -119,10 +164,6 @@ export class BacktestMetricsService {
     };
   }
 
-  /**
-   * El drawdown se mide sobre la curva de equity realizada ya almacenada por el
-   * engine. Asi se evita recalcular picos y valles a partir de los trades.
-   */
   private calculateMaxDrawdown(
     equityCurve: BacktestEquityPoint[]
   ) {
@@ -133,6 +174,26 @@ export class BacktestMetricsService {
           : maxDrawdown,
       0
     );
+  }
+
+  private calculateMaxConsecutive(
+    trades: BacktestTrade[],
+    result: "WIN" | "LOSS"
+  ) {
+    let best = 0;
+    let current = 0;
+
+    for (const trade of trades) {
+      if (trade.result === result) {
+        current += 1;
+        best =
+          Math.max(best, current);
+      } else {
+        current = 0;
+      }
+    }
+
+    return best;
   }
 
   private getBestTrade(

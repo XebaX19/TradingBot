@@ -225,4 +225,10 @@ export class HybridStrategy {
   getStrategyName() {
     return this.strategyName;
   }
+
+  getConfig() {
+    return {
+      ...this.config
+    };
+  }
 }

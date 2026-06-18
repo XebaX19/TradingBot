@@ -15,6 +15,14 @@ CREATE TABLE backtest_runs
     profit_factor DECIMAL(18,8) NULL,
     average_win DECIMAL(18,8) NOT NULL,
     average_loss DECIMAL(18,8) NOT NULL,
+    expectancy DECIMAL(18,8) NOT NULL,
+    average_holding_hours DECIMAL(18,8) NOT NULL,
+    exposure_time_percent DECIMAL(18,8) NOT NULL,
     max_drawdown DECIMAL(18,8) NOT NULL,
+    max_consecutive_wins INT NOT NULL,
+    max_consecutive_losses INT NOT NULL,
+    strategy_parameters_json NVARCHAR(MAX) NOT NULL,
+    backtest_parameters_json NVARCHAR(MAX) NOT NULL,
+    dataset_quality_json NVARCHAR(MAX) NOT NULL,
     created_at DATETIME2 DEFAULT SYSUTCDATETIME()
 );

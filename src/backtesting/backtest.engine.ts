@@ -6,6 +6,7 @@ import {
   BacktestTrade
 } from "../models/backtest.model";
 import { HybridStrategy } from "../strategy/hybrid.strategy";
+import { BacktestDataValidatorService } from "./backtest-data-validator.service";
 import { TradeSimulator } from "./trade.simulator";
 
 export interface BacktestEngineConfig {
@@ -17,6 +18,7 @@ export class BacktestEngine {
     private marketData: MarketDataService,
     private strategy: HybridStrategy,
     private simulator: TradeSimulator,
+    private dataValidator: BacktestDataValidatorService,
     private config: BacktestEngineConfig = {
       initialCapital:
         env.backtest.initialCapital
@@ -37,17 +39,30 @@ export class BacktestEngine {
         from,
         to
       );
+    const warmupCandles =
+      this.strategy.getRequiredHourlyHistory();
+    const dataQuality =
+      this.dataValidator.validate(
+        candles,
+        warmupCandles
+      );
+
+    if (!dataQuality.isValid) {
+      throw new Error(
+        `Backtest dataset validation failed: ${dataQuality.issues.map(issue => issue.detail).join(" | ")}`
+      );
+    }
+
     const trades: BacktestTrade[] = [];
     const equityCurve: BacktestEquityPoint[] = [
       {
         timestamp: from,
         equity: this.config.initialCapital,
         drawdownPercent: 0,
-        tradeNumber: 0
+        tradeNumber: 0,
+        pointType: "REALIZED"
       }
     ];
-    const warmupCandles =
-      this.strategy.getRequiredHourlyHistory();
     let equity =
       this.config.initialCapital;
     let peakEquity =
@@ -85,6 +100,28 @@ export class BacktestEngine {
       }
 
       trades.push(simulation.trade);
+
+      for (const point of simulation.equityPoints) {
+        peakEquity =
+          Math.max(
+            peakEquity,
+            point.equity
+          );
+
+        equityCurve.push({
+          ...point,
+          drawdownPercent:
+            peakEquity === 0
+              ? 0
+              : (
+                (peakEquity - point.equity)
+                /
+                peakEquity
+              ) * 100,
+          tradeNumber: trades.length
+        });
+      }
+
       equity =
         simulation.trade.equityAfter;
       peakEquity =
@@ -104,9 +141,9 @@ export class BacktestEngine {
               (peakEquity - equity)
               /
               peakEquity
-            )
-            * 100,
-        tradeNumber: trades.length
+            ) * 100,
+        tradeNumber: trades.length,
+        pointType: "REALIZED"
       });
 
       i =
@@ -117,7 +154,19 @@ export class BacktestEngine {
 
     return {
       trades,
-      equityCurve
+      equityCurve,
+      dataQuality,
+      context: {
+        strategyName:
+          this.strategy.getStrategyName(),
+        strategyParameters:
+          this.strategy.getConfig(),
+        backtestParameters: {
+          initialCapital:
+            this.config.initialCapital,
+          ...this.simulator.getConfig()
+        }
+      }
     };
   }
 }

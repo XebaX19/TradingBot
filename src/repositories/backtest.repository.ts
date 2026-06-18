@@ -7,7 +7,8 @@ export class BacktestRepository {
   ) { }
 
   /**
-   * Persiste el resumen de la corrida y luego todos los trades asociados.
+   * Persiste el resumen de la corrida, su contexto cuantitativo y luego todos
+   * los trades asociados.
    */
   async saveRun(
     strategy: string,
@@ -32,7 +33,15 @@ export class BacktestRepository {
           profit_factor,
           average_win,
           average_loss,
-          max_drawdown
+          expectancy,
+          average_holding_hours,
+          exposure_time_percent,
+          max_drawdown,
+          max_consecutive_wins,
+          max_consecutive_losses,
+          strategy_parameters_json,
+          backtest_parameters_json,
+          dataset_quality_json
         )
         OUTPUT INSERTED.id AS id
         VALUES
@@ -51,7 +60,15 @@ export class BacktestRepository {
           @profitFactor,
           @averageWin,
           @averageLoss,
-          @maxDrawdown
+          @expectancy,
+          @averageHoldingHours,
+          @exposureTimePercent,
+          @maxDrawdown,
+          @maxConsecutiveWins,
+          @maxConsecutiveLosses,
+          @strategyParametersJson,
+          @backtestParametersJson,
+          @datasetQualityJson
         )
         `,
         {
@@ -79,8 +96,24 @@ export class BacktestRepository {
             result.averageWin,
           averageLoss:
             result.averageLoss,
+          expectancy:
+            result.expectancy,
+          averageHoldingHours:
+            result.averageHoldingHours,
+          exposureTimePercent:
+            result.exposureTimePercent,
           maxDrawdown:
-            result.maxDrawdown
+            result.maxDrawdown,
+          maxConsecutiveWins:
+            result.maxConsecutiveWins,
+          maxConsecutiveLosses:
+            result.maxConsecutiveLosses,
+          strategyParametersJson:
+            JSON.stringify(result.context.strategyParameters),
+          backtestParametersJson:
+            JSON.stringify(result.context.backtestParameters),
+          datasetQualityJson:
+            JSON.stringify(result.dataQuality)
         }
       );
 
@@ -120,6 +153,10 @@ export class BacktestRepository {
         profit_percent,
         equity_before,
         equity_after,
+        holding_candles,
+        holding_hours,
+        mfe_percent,
+        mae_percent,
         result,
         exit_reason
       )
@@ -140,6 +177,10 @@ export class BacktestRepository {
         @profitPercent,
         @equityBefore,
         @equityAfter,
+        @holdingCandles,
+        @holdingHours,
+        @maxFavorableExcursionPercent,
+        @maxAdverseExcursionPercent,
         @result,
         @exitReason
       )
@@ -174,6 +215,14 @@ export class BacktestRepository {
           trade.equityBefore,
         equityAfter:
           trade.equityAfter,
+        holdingCandles:
+          trade.holdingCandles,
+        holdingHours:
+          trade.holdingHours,
+        maxFavorableExcursionPercent:
+          trade.maxFavorableExcursionPercent,
+        maxAdverseExcursionPercent:
+          trade.maxAdverseExcursionPercent,
         result:
           trade.result,
         exitReason:

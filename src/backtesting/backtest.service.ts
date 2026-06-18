@@ -35,8 +35,7 @@ export class BacktestService {
 
     const result =
       this.metrics.calculate(
-        execution.trades,
-        execution.equityCurve,
+        execution,
         from,
         to,
         this.config.initialCapital

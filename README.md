@@ -200,6 +200,7 @@ Responsabilidad:
 Arquitectura interna del backtesting:
 
 - `backtest.engine`: recorre velas, evalua senales y genera trades
+- `backtest-data-validator.service`: aborta corridas sobre datasets con gaps o velas invalidas
 - `trade.simulator`: modela ejecucion, comisiones, slippage y salida
 - `backtest-metrics.service`: consolida metricas y drawdown
 - `backtest.service`: orquesta la corrida cuantitativa
@@ -217,6 +218,8 @@ Cada trade almacenado contiene:
 - fees pagados
 - motivo de salida
 - equity antes y despues del trade
+- holding time
+- MFE y MAE por trade
 
 Tablas de backtesting:
 
@@ -233,10 +236,21 @@ Metricas principales:
 - profit factor
 - ganancia promedio
 - perdida promedio
+- expectancy
+- average holding hours
+- exposure time
 - maximo drawdown
 - mejor operacion
 - peor operacion
 - curva de equity realizada
+
+Validaciones previas al backtest:
+
+- continuidad temporal del rango
+- ausencia de duplicados
+- consistencia OHLC
+- volumen no negativo
+- suficiente historico para warmup
 
 ### 6. Parameter Optimizer
 
@@ -433,7 +447,7 @@ npm run reconciliation
 npm run test-market-data
 npm run test-strategy
 npm run backtest
-npm run optimize
+npm run optimize-strategy
 npm run validate-strategy
 npm run paper-trading
 npm run live-trading
@@ -456,7 +470,7 @@ npm run validate-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:
 Optimizacion de parametros con grilla explicita:
 
 ```bash
-npm run optimize -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --top=5
+npm run optimize-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --top=5
 ```
 
 Backfill historico para una ventana acotada:

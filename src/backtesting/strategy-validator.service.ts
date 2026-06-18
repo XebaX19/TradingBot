@@ -6,6 +6,7 @@ import {
 } from "../models/optimization.model";
 import { HybridStrategy, HybridStrategyConfig } from "../strategy/hybrid.strategy";
 import { BacktestEngine } from "./backtest.engine";
+import { BacktestDataValidatorService } from "./backtest-data-validator.service";
 import { BacktestMetricsService } from "./backtest-metrics.service";
 import { BacktestService } from "./backtest.service";
 import { TradeSimulator } from "./trade.simulator";
@@ -114,6 +115,7 @@ export class StrategyValidatorService {
         this.marketData,
         strategy,
         simulator,
+        new BacktestDataValidatorService(),
         {
           initialCapital:
             this.backtestConfig.initialCapital

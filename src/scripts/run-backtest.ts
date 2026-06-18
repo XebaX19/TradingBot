@@ -1,4 +1,5 @@
 import minimist from "minimist";
+import { BacktestDataValidatorService } from "../backtesting/backtest-data-validator.service";
 import { BacktestEngine } from "../backtesting/backtest.engine";
 import { BacktestMetricsService } from "../backtesting/backtest-metrics.service";
 import { BacktestService } from "../backtesting/backtest.service";
@@ -50,6 +51,7 @@ async function main() {
         ),
         strategy,
         new TradeSimulator(),
+        new BacktestDataValidatorService(),
         {
           initialCapital:
             env.backtest.initialCapital

@@ -1,6 +1,7 @@
 import { env } from "../config/env";
 import { Candle } from "../models/candle.model";
 import {
+  BacktestEquityPoint,
   BacktestExitReason,
   BacktestTrade,
   BacktestTradeResult
@@ -19,11 +20,13 @@ interface SimulatedExit {
   exitPrice: number;
   exitReason: BacktestExitReason;
   exitOffset: number;
+  candlesObserved: Candle[];
 }
 
 export interface SimulatedTradeResult {
   trade: BacktestTrade;
   exitIndexOffset: number;
+  equityPoints: BacktestEquityPoint[];
 }
 
 export class TradeSimulator {
@@ -40,14 +43,6 @@ export class TradeSimulator {
     }
   ) { }
 
-  /**
-   * Simula un trade a partir de una senal ya confirmada.
-   *
-   * Punto critico:
-   * La entrada se hace sobre la apertura de la siguiente vela. De esa forma la
-   * estrategia no "compra" al cierre de una vela usando informacion que solo
-   * se conocio cuando esa vela ya termino.
-   */
   simulate(
     signal: TradeSignal,
     futureCandles: Candle[],
@@ -78,12 +73,9 @@ export class TradeSimulator {
         1 +
         (this.config.slippagePercent / 100)
       );
-
     const quantity =
       positionSize / entryPrice;
 
-    // Recalculamos niveles desde el precio ejecutado para respetar el riesgo
-    // definido por la estrategia aun cuando haya slippage.
     const stopLossPrice =
       entryPrice *
       (
@@ -103,14 +95,6 @@ export class TradeSimulator {
         stopLossPrice,
         takeProfitPrice
       );
-
-    const grossPnl =
-      (
-        exit.exitPrice - entryPrice
-      )
-      *
-      quantity;
-
     const entryFee =
       positionSize *
       (
@@ -123,6 +107,12 @@ export class TradeSimulator {
       (
         this.config.commissionPercent / 100
       );
+    const grossPnl =
+      (
+        exit.exitPrice - entryPrice
+      )
+      *
+      quantity;
     const feesPaid =
       entryFee + exitFee;
     const netPnl =
@@ -133,10 +123,19 @@ export class TradeSimulator {
       (netPnl / positionSize) * 100;
     const result: BacktestTradeResult =
       netPnl >= 0 ? "WIN" : "LOSS";
+    const equityPoints =
+      this.buildFloatingEquityCurve(
+        exit.candlesObserved,
+        equityBefore,
+        quantity,
+        entryPrice,
+        entryFee
+      );
 
     return {
       exitIndexOffset:
         exit.exitOffset,
+      equityPoints,
       trade: {
         signal,
         entryTime: entryCandle.openTime,
@@ -151,6 +150,20 @@ export class TradeSimulator {
         profitPercent,
         equityBefore,
         equityAfter,
+        holdingCandles:
+          exit.exitOffset + 1,
+        holdingHours:
+          exit.exitOffset + 1,
+        maxFavorableExcursionPercent:
+          this.calculateMaxFavorableExcursionPercent(
+            exit.candlesObserved,
+            entryPrice
+          ),
+        maxAdverseExcursionPercent:
+          this.calculateMaxAdverseExcursionPercent(
+            exit.candlesObserved,
+            entryPrice
+          ),
         result,
         exitReason: exit.exitReason
       }
@@ -182,7 +195,12 @@ export class TradeSimulator {
           exitCandle: candle,
           exitPrice: stopLossPrice,
           exitReason: "STOP_LOSS",
-          exitOffset: i
+          exitOffset: i,
+          candlesObserved:
+            candlesToCheck.slice(
+              0,
+              i + 1
+            )
         };
       }
 
@@ -191,14 +209,18 @@ export class TradeSimulator {
           exitCandle: candle,
           exitPrice: takeProfitPrice,
           exitReason: "TAKE_PROFIT",
-          exitOffset: i
+          exitOffset: i,
+          candlesObserved:
+            candlesToCheck.slice(
+              0,
+              i + 1
+            )
         };
       }
     }
 
     const lastCandle =
       candlesToCheck[candlesToCheck.length - 1];
-
     const exitPrice =
       lastCandle.close *
       (
@@ -210,7 +232,99 @@ export class TradeSimulator {
       exitCandle: lastCandle,
       exitPrice,
       exitReason: "MAX_HOLDING_TIME",
-      exitOffset: candlesToCheck.length - 1
+      exitOffset: candlesToCheck.length - 1,
+      candlesObserved:
+        candlesToCheck
+    };
+  }
+
+  /**
+   * Curva flotante mark-to-market usando el close de cada vela abierta.
+   */
+  private buildFloatingEquityCurve(
+    candlesObserved: Candle[],
+    equityBefore: number,
+    quantity: number,
+    entryPrice: number,
+    entryFee: number
+  ) {
+    return candlesObserved.map(
+      (candle, index) => {
+        const floatingExitNotional =
+          candle.close * quantity;
+        const floatingExitFee =
+          floatingExitNotional *
+          (
+            this.config.commissionPercent / 100
+          );
+        const floatingNetPnl =
+          (
+            (candle.close - entryPrice) *
+            quantity
+          ) -
+          entryFee -
+          floatingExitFee;
+
+        return {
+          timestamp:
+            candle.openTime,
+          equity:
+            equityBefore + floatingNetPnl,
+          drawdownPercent: 0,
+          tradeNumber: index + 1,
+          pointType: "FLOATING" as const
+        };
+      }
+    );
+  }
+
+  private calculateMaxFavorableExcursionPercent(
+    candlesObserved: Candle[],
+    entryPrice: number
+  ) {
+    return candlesObserved.reduce(
+      (best, candle) => {
+        const excursion =
+          (
+            (candle.high - entryPrice)
+            /
+            entryPrice
+          )
+          * 100;
+
+        return excursion > best
+          ? excursion
+          : best;
+      },
+      0
+    );
+  }
+
+  private calculateMaxAdverseExcursionPercent(
+    candlesObserved: Candle[],
+    entryPrice: number
+  ) {
+    return candlesObserved.reduce(
+      (worst, candle) => {
+        const excursion =
+          (
+            (entryPrice - candle.low)
+            /
+            entryPrice
+          )
+          * 100;
+
+        return excursion > worst
+          ? excursion
+          : worst;
+      },
+      0
+    );
+  }
+
+  getConfig() {
+    return {
+      ...this.config
     };
   }
 }
