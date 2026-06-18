@@ -1,14 +1,14 @@
 # AGENTS.md
 
-## Propósito
+## Proposito
 
-Este repositorio define una plataforma cuantitativa completa para trading sistemático sobre `BTCUSDT`. El agente que trabaje aquí debe pensar el sistema como un producto end-to-end que cubre datos, estrategia, validación, alertas y ejecución automática.
+Este repositorio define una plataforma cuantitativa completa para trading sistematico sobre `BTCUSDT`. El agente que trabaje aqui debe pensar el sistema como un producto end-to-end que cubre datos, estrategia, validacion, alertas y ejecucion automatica.
 
-Aunque una iteración puntual trabaje sobre una parte concreta, el diseño global siempre debe preservarse.
+Aunque una iteracion puntual trabaje sobre una parte concreta, el diseno global siempre debe preservarse.
 
-## Visión del sistema
+## Vision del sistema
 
-El sistema final está compuesto por los siguientes dominios:
+El sistema final esta compuesto por los siguientes dominios:
 
 - `market data ingestion`
 - `historical reconciliation`
@@ -27,13 +27,13 @@ El sistema final está compuesto por los siguientes dominios:
 
 La plataforma debe permitir:
 
-- recolectar y mantener histórico íntegro de velas
-- calcular señales consistentes sobre reglas configurables
+- recolectar y mantener historico integro de velas
+- calcular senales consistentes sobre reglas configurables
 - simular resultados con costos operativos
-- optimizar parámetros sin sobreajuste
-- validar robustez estadística
+- optimizar parametros sin sobreajuste
+- validar robustez estadistica
 - notificar eventos relevantes
-- ejecutar órdenes cuando el modo operativo lo permita
+- ejecutar ordenes cuando el modo operativo lo permita
 
 ## Arquitectura objetivo
 
@@ -55,12 +55,12 @@ src/
 
 ### Responsabilidad por capa
 
-- `data/`: acceso a exchange, collection, reconciliation y adaptación de market data
-- `database/`: conexión SQL Server, schemas y utilidades de persistencia
-- `strategy/`: indicadores, reglas y contratos de señal
-- `backtesting/`: simulación, métricas, optimización y validación
+- `data/`: acceso a exchange, collection, reconciliation y adaptacion de market data
+- `database/`: conexion SQL Server, schemas y utilidades de persistencia
+- `strategy/`: indicadores, reglas y contratos de senal
+- `backtesting/`: simulacion, metricas, optimizacion y validacion
 - `notifications/`: Telegram y otros canales operativos
-- `execution/`: integración con exchange para paper/live trading
+- `execution/`: integracion con exchange para paper/live trading
 - `workers/`: daemons programados
 - `scripts/`: tareas manuales y operativas
 
@@ -69,10 +69,10 @@ src/
 - activo principal: `BTCUSDT`
 - timeframe base: `1h`
 - filtro macro: `EMA 200` diaria derivada de `1h`
-- entrada inicial: corrección porcentual + `RSI` + volumen
+- entrada inicial: correccion porcentual + `RSI` + volumen
 - prioridad: robustez cuantitativa antes que frecuencia operativa
 
-## Modos de operación
+## Modos de operacion
 
 El sistema debe soportar tres modos:
 
@@ -82,70 +82,72 @@ El sistema debe soportar tres modos:
 
 Reglas:
 
-- `signal-only`: genera y persiste señales, envía alertas, no envía órdenes
-- `paper-trading`: simula órdenes y lifecycle operativo sin tocar el exchange
-- `live-trading`: envía órdenes reales solo si existe habilitación explícita de entorno
+- `signal-only`: genera y persiste senales, envia alertas, no envia ordenes
+- `paper-trading`: simula ordenes y lifecycle operativo sin tocar el exchange
+- `live-trading`: envia ordenes reales solo si existe habilitacion explicita de entorno
 
-## Reglas de diseño
+## Reglas de diseno
 
 - mantener desacoplados strategy engine y execution layer
-- evitar hardcoding de parámetros de mercado y estrategia
-- toda lógica configurable debe salir de `config`
+- evitar hardcoding de parametros de mercado y estrategia
+- toda logica configurable debe salir de `config`
 - la persistencia debe ser idempotente
-- el collector y la reconciliación deben tolerar reinicios
-- los módulos de backtesting no deben depender del runtime de producción
+- el collector y la reconciliacion deben tolerar reinicios
+- los modulos de backtesting no deben depender del runtime de produccion
 - todo resultado cuantitativo debe poder reproducirse
-- si un cambio implementa una capacidad, tabla, flujo, módulo o comportamiento que no esté reflejado en `README.md`, hay que actualizar `README.md` en la misma intervención
-- si una implementación cambia el alcance o el contrato funcional descrito en `README.md`, no dejar la documentación desalineada
+- si un cambio implementa una capacidad, tabla, flujo, modulo o comportamiento que no este reflejado en `README.md`, hay que actualizar `README.md` en la misma intervencion
+- si una implementacion cambia el alcance o el contrato funcional descrito en `README.md`, no dejar la documentacion desalineada
+- si se agrega o renombra una metrica, variable, score, flag o termino cuantitativo relevante, actualizar `docs/terminology.md` en la misma intervencion
+- si un termino nuevo aparece en `README.md` y no es autoexplicativo, debe existir tambien en `docs/terminology.md`
 
 ## Reglas cuantitativas
 
 Cuando se modifique estrategia, indicadores o backtesting:
 
-- documentar fórmulas y supuestos
+- documentar formulas y supuestos
 - evitar look-ahead bias
 - evitar data leakage
-- respetar separación entre training y validation
+- respetar separacion entre training y validation
 - medir retorno junto con drawdown y estabilidad
 - no aceptar configuraciones solo por retorno absoluto
 
-## Reglas de ejecución
+## Reglas de ejecucion
 
-Cuando se trabaje sobre ejecución automática:
+Cuando se trabaje sobre ejecucion automatica:
 
 - introducir un adaptador de exchange desacoplado
 - permitir reemplazar Binance por otro broker sin reescribir estrategia
 - registrar request, response, fills y errores
-- proteger contra órdenes duplicadas
-- incorporar controles de riesgo por posición y exposición
-- requerir flag explícita para habilitar live trading
+- proteger contra ordenes duplicadas
+- incorporar controles de riesgo por posicion y exposicion
+- requerir flag explicita para habilitar live trading
 
 ## Reglas de datos
 
-Cuando se trabaje sobre collector o reconciliación:
+Cuando se trabaje sobre collector o reconciliacion:
 
-- garantizar continuidad temporal del histórico
+- garantizar continuidad temporal del historico
 - detectar faltantes, duplicados e inconsistencias
-- preservar trazabilidad de recuperación
+- preservar trazabilidad de recuperacion
 - preferir procesos idempotentes y auditables
 - no asumir que la API externa es perfecta
 
-## Reglas de configuración
+## Reglas de configuracion
 
-La configuración esperada incluye:
+La configuracion esperada incluye:
 
 - SQL Server
-- Binance pública para market data
-- Binance autenticada para ejecución automática
-- parámetros de estrategia
-- parámetros de backtesting
+- Binance publica para market data
+- Binance autenticada para ejecucion automatica
+- parametros de estrategia
+- parametros de backtesting
 - credenciales Telegram
 - modo operativo
 - feature flags para live trading
 
 ## Tablas esperadas
 
-Como mínimo, el sistema final debe contemplar persistencia para:
+Como minimo, el sistema final debe contemplar persistencia para:
 
 - `candles`
 - `candle_reconciliation_log`
@@ -158,7 +160,7 @@ Como mínimo, el sistema final debe contemplar persistencia para:
 - `order_executions`
 - `positions`
 
-## Métricas mínimas esperadas
+## Metricas minimas esperadas
 
 - capital inicial
 - capital final
@@ -173,25 +175,25 @@ Como mínimo, el sistema final debe contemplar persistencia para:
 - worst trade
 - performance training
 - performance validation
-- degradación porcentual
-- estabilidad de parámetros
+- degradacion porcentual
+- estabilidad de parametros
 
 ## Prioridad de producto
 
 El orden conceptual del producto es:
 
 1. datos confiables
-2. señales correctas
+2. senales correctas
 3. backtesting realista
-4. optimización robusta
-5. validación fuera de muestra
+4. optimizacion robusta
+5. validacion fuera de muestra
 6. paper trading
 7. live trading
 
-## Qué debe preservar cualquier cambio
+## Que debe preservar cualquier cambio
 
-- separación de responsabilidades
-- trazabilidad de cada señal y trade
+- separacion de responsabilidades
+- trazabilidad de cada senal y trade
 - facilidad para auditar decisiones
 - posibilidad de ejecutar la estrategia sin acoplarla a Binance
 - posibilidad de extender el sistema a nuevas estrategias
@@ -209,6 +211,6 @@ El orden conceptual del producto es:
 
 ## Criterio general para futuras revisiones
 
-El agente no debe pensar en este repositorio como un simple bot de alertas. Debe tratarlo como una plataforma cuantitativa con pipeline completo desde market data hasta ejecución automática, con énfasis en consistencia matemática, control de riesgo y auditabilidad.
+El agente no debe pensar en este repositorio como un simple bot de alertas. Debe tratarlo como una plataforma cuantitativa con pipeline completo desde market data hasta ejecucion automatica, con enfasis en consistencia matematica, control de riesgo y auditabilidad.
 
-Además, `README.md` debe mantenerse como la referencia funcional de alto nivel del sistema. Cualquier desvío relevante entre implementación y documentación debe corregirse durante el mismo cambio, no dejarse para después.
+Ademas, `README.md` debe mantenerse como la referencia funcional de alto nivel del sistema. Cualquier desvio relevante entre implementacion y documentacion debe corregirse durante el mismo cambio, no dejarse para despues.

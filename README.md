@@ -36,6 +36,30 @@ El sistema permite:
 - Notificaciones: `Telegram Bot API`
 - Scheduling: daemons nativos de Node.js
 
+## Glosario rapido
+
+Referencia completa:
+
+- ver [docs/terminology.md](/c:/Users/sebab/Documents/Pruebas%20NodeJS/TradingBot/docs/terminology.md)
+
+Terminos clave:
+
+- `EMA200`: media movil exponencial de 200 periodos. En esta estrategia actua como filtro de tendencia macro.
+- `RSI`: indicador de momentum que mide sobrecompra o sobreventa. En esta estrategia se usa para detectar agotamiento bajista.
+- `dropPercent`: porcentaje de caida del precio actual respecto del maximo reciente observado.
+- `volumeMultiplier`: relacion minima entre el volumen actual y el volumen promedio historico usado como confirmacion.
+- `profitFactor`: ganancias brutas divididas por perdidas brutas. Mayor a `1` implica sistema rentable antes de otros filtros.
+- `expectancy`: resultado promedio esperado por trade.
+- `maxDrawdown`: peor caida porcentual desde un pico de equity hasta el valle posterior.
+- `MFE`: maxima excursion favorable de un trade antes de cerrarse.
+- `MAE`: maxima excursion adversa de un trade antes de cerrarse.
+- `training`: tramo historico usado para ajustar y optimizar parametros.
+- `validation`: tramo historico fuera de muestra usado para comprobar si la estrategia conserva comportamiento.
+- `walk-forward`: validacion repetida en multiples ventanas cronologicas para evitar depender de un solo split.
+- `overfitting`: situacion donde una configuracion luce muy buena en training pero se degrada al evaluarla fuera de muestra.
+- `consistencyScore`: score agregado de consistencia entre training y validation.
+- `robustnessFlags`: señales explicitas que indican fragilidad estadistica, degradacion excesiva o sobreajuste.
+
 ## Capacidades del sistema
 
 ### 1. Market Data Collector
