@@ -1,0 +1,20 @@
+CREATE TABLE backtest_runs
+(
+    id BIGINT IDENTITY PRIMARY KEY,
+    strategy VARCHAR(100) NOT NULL,
+    period_from DATETIME2 NOT NULL,
+    period_to DATETIME2 NOT NULL,
+    initial_capital DECIMAL(18,8) NOT NULL,
+    final_capital DECIMAL(18,8) NOT NULL,
+    net_profit DECIMAL(18,8) NOT NULL,
+    return_percent DECIMAL(18,8) NOT NULL,
+    total_trades INT NOT NULL,
+    wins INT NOT NULL,
+    losses INT NOT NULL,
+    win_rate DECIMAL(18,8) NOT NULL,
+    profit_factor DECIMAL(18,8) NULL,
+    average_win DECIMAL(18,8) NOT NULL,
+    average_loss DECIMAL(18,8) NOT NULL,
+    max_drawdown DECIMAL(18,8) NOT NULL,
+    created_at DATETIME2 DEFAULT SYSUTCDATETIME()
+);

@@ -1,31 +1,31 @@
 # TradingBot
 
-Plataforma backend para análisis cuantitativo, generación de señales, backtesting, optimización de parámetros y ejecución automática de estrategias sobre `BTCUSDT`, construida con `Node.js`, `TypeScript` y `Microsoft SQL Server`.
+Plataforma backend para analisis cuantitativo, generacion de senales, backtesting, optimizacion de parametros y ejecucion automatica de estrategias sobre `BTCUSDT`, construida con `Node.js`, `TypeScript` y `Microsoft SQL Server`.
 
-El sistema fue diseñado para cubrir el ciclo completo de una estrategia sistemática:
+El sistema fue disenado para cubrir el ciclo completo de una estrategia sistematica:
 
-- adquisición y persistencia de market data
-- validación de integridad histórica
-- cálculo de indicadores y señales
-- simulación y evaluación estadística
-- optimización y validación fuera de muestra
+- adquisicion y persistencia de market data
+- validacion de integridad historica
+- calculo de indicadores y senales
+- simulacion y evaluacion estadistica
+- optimizacion y validacion fuera de muestra
 - notificaciones operativas
-- ejecución automática de órdenes en una etapa productiva
+- ejecucion automatica de ordenes en una etapa productiva
 
 ## Objetivo
 
-TradingBot no se basa en intuición discrecional ni en predicción aislada de precio. Su objetivo es operar como un sistema cuantitativo reproducible, donde cada señal, trade y métrica pueda trazarse y validarse con datos históricos y reglas configurables.
+TradingBot no se basa en intuicion discrecional ni en prediccion aislada de precio. Su objetivo es operar como un sistema cuantitativo reproducible, donde cada senal, trade y metrica pueda trazarse y validarse con datos historicos y reglas configurables.
 
 El sistema permite:
 
-- almacenar histórico OHLCV de Bitcoin
-- construir datasets consistentes para análisis técnico
+- almacenar historico OHLCV de Bitcoin
+- construir datasets consistentes para analisis tecnico
 - ejecutar estrategias modulares desacopladas del origen de datos
 - simular operaciones bajo supuestos realistas
 - medir retorno, riesgo y estabilidad
-- optimizar parámetros sin contaminar datasets
+- optimizar parametros sin contaminar datasets
 - generar alertas operativas
-- ejecutar órdenes automáticas sobre exchange cuando el modo de operación lo habilita
+- ejecutar ordenes automaticas sobre exchange cuando el modo de operacion lo habilita
 
 ## Stack
 
@@ -44,9 +44,9 @@ Responsabilidad:
 
 - consumir datos de mercado desde Binance
 - obtener velas OHLCV de `BTCUSDT`
-- persistir histórico en SQL Server
+- persistir historico en SQL Server
 - evitar duplicados
-- reanudar correctamente después de reinicios
+- reanudar correctamente despues de reinicios
 - mantener continuidad temporal del dataset base
 
 Timeframe base:
@@ -74,7 +74,7 @@ El collector corre como daemon y garantiza idempotencia en la ingesta.
 
 ### 2. Candle Reconciliation
 
-Proceso independiente orientado a asegurar integridad histórica.
+Proceso independiente orientado a asegurar integridad historica.
 
 Responsabilidad:
 
@@ -83,13 +83,13 @@ Responsabilidad:
 - detectar velas incompletas o inconsistentes
 - validar continuidad temporal
 - recuperar datos faltantes desde el exchange
-- auditar cada ejecución
+- auditar cada ejecucion
 
 Frecuencia:
 
-- una vez por día de forma automática
+- una vez por dia de forma automatica
 
-Tabla de auditoría:
+Tabla de auditoria:
 
 - `candle_reconciliation_log`
 
@@ -109,21 +109,21 @@ Campos:
 
 ### 3. Strategy Engine
 
-Motor de estrategia desacoplado del collector, del backtester y del ejecutor de órdenes.
+Motor de estrategia desacoplado del collector, del backtester y del ejecutor de ordenes.
 
 Responsabilidad:
 
-- recibir series históricas
+- recibir series historicas
 - calcular indicadores
 - evaluar reglas de entrada y salida
-- generar señales estructuradas
+- generar senales estructuradas
 
-Primera estrategia híbrida:
+Primera estrategia hibrida:
 
 - filtro de tendencia: `EMA 200` diaria calculada desde velas de `1h`
-- condición de caída porcentual desde máximo reciente
-- condición de sobreventa por `RSI 14`
-- confirmación por volumen relativo
+- condicion de caida porcentual desde maximo reciente
+- condicion de sobreventa por `RSI 14`
+- confirmacion por volumen relativo
 
 Regla base:
 
@@ -148,17 +148,17 @@ Evento emitido:
 
 ### 4. Notifications
 
-Cuando se genera una señal válida, el sistema envía una alerta a Telegram con contexto operativo suficiente para revisión humana.
+Cuando se genera una senal valida, el sistema envia una alerta a Telegram con contexto operativo suficiente para revision humana.
 
 Contenido esperado:
 
-- símbolo
+- simbolo
 - precio actual
-- caída porcentual
+- caida porcentual
 - RSI
 - EMA200
-- razón de la señal
-- parámetros activos
+- razon de la senal
+- parametros activos
 - timestamp
 
 Ejemplo:
@@ -167,28 +167,38 @@ Ejemplo:
 BTC BUY SIGNAL
 
 Precio: 92000 USD
-Caída: -8.4%
+Caida: -8.4%
 RSI: 31
 EMA200: 85000
 Motivos:
 - Tendencia alcista
 - Sobreventa
-- Corrección fuerte
+- Correccion fuerte
 ```
 
 ### 5. Backtesting
 
-Módulo independiente para ejecutar la estrategia sobre histórico persistido en SQL Server.
+Modulo independiente para ejecutar la estrategia sobre historico persistido en SQL Server.
 
 Responsabilidad:
 
 - simular entradas y salidas
 - modelar capital inicial
-- aplicar tamaño de posición
-- descontar comisión
+- aplicar tamano de posicion
+- descontar comision
 - aplicar slippage
 - respetar take profit y stop loss
+- construir curva de equity
 - registrar trades simulados
+- persistir corridas de backtest
+
+Arquitectura interna del backtesting:
+
+- `backtest.engine`: recorre velas, evalua senales y genera trades
+- `trade.simulator`: modela ejecucion, comisiones, slippage y salida
+- `backtest-metrics.service`: consolida metricas y drawdown
+- `backtest.service`: orquesta la corrida cuantitativa
+- `backtest.repository`: persiste corridas y operaciones simuladas
 
 Cada trade almacenado contiene:
 
@@ -196,11 +206,19 @@ Cada trade almacenado contiene:
 - precio de entrada
 - timestamp de salida
 - precio de salida
+- cantidad ejecutada
 - resultado
-- ganancia o pérdida
+- ganancia o perdida
+- fees pagados
 - motivo de salida
+- equity antes y despues del trade
 
-Métricas principales:
+Tablas de backtesting:
+
+- `backtest_runs`
+- `backtest_trades`
+
+Metricas principales:
 
 - capital inicial
 - capital final
@@ -209,23 +227,24 @@ Métricas principales:
 - win rate
 - profit factor
 - ganancia promedio
-- pérdida promedio
-- máximo drawdown
-- mejor operación
-- peor operación
+- perdida promedio
+- maximo drawdown
+- mejor operacion
+- peor operacion
+- curva de equity realizada
 
 ### 6. Parameter Optimizer
 
-Módulo para probar múltiples configuraciones de la estrategia de forma sistemática.
+Modulo para probar multiples configuraciones de la estrategia de forma sistematica.
 
 Responsabilidad:
 
-- ejecutar grids de parámetros
+- ejecutar grids de parametros
 - rankear configuraciones
 - comparar retorno vs riesgo
 - priorizar robustez por encima de ganancia bruta
 
-Parámetros típicos:
+Parametros tipicos:
 
 - `dropPercent`
 - `rsiLimit`
@@ -233,58 +252,58 @@ Parámetros típicos:
 - `takeProfitPercent`
 - `stopLossPercent`
 
-La salida del optimizador incluye ranking, métricas comparativas y score compuesto de robustez.
+La salida del optimizador incluye ranking, metricas comparativas y score compuesto de robustez.
 
 ### 7. Robust Validation
 
-El sistema incorpora separación entre datasets de entrenamiento y validación para reducir sobreajuste.
+El sistema incorpora separacion entre datasets de entrenamiento y validacion para reducir sobreajuste.
 
 Proceso:
 
-1. optimizar parámetros solo sobre `training`
-2. evaluar la mejor configuración sobre `validation`
-3. medir degradación de performance
-4. detectar señales de overfitting
+1. optimizar parametros solo sobre `training`
+2. evaluar la mejor configuracion sobre `validation`
+3. medir degradacion de performance
+4. detectar senales de overfitting
 
-Métricas adicionales:
+Metricas adicionales:
 
 - diferencia entre retorno de training y validation
-- degradación porcentual
-- estabilidad de parámetros
+- degradacion porcentual
+- estabilidad de parametros
 - estabilidad de cantidad de trades
 - estabilidad de drawdown
 
-El criterio de aceptación no es “máximo retorno”, sino consistencia ajustada por riesgo.
+El criterio de aceptacion no es "maximo retorno", sino consistencia ajustada por riesgo.
 
 ### 8. Order Execution Layer
 
-La arquitectura contempla una capa de ejecución desacoplada del strategy engine.
+La arquitectura contempla una capa de ejecucion desacoplada del strategy engine.
 
 Responsabilidad:
 
-- recibir señales validadas
-- traducirlas a órdenes
-- controlar modo de operación
-- registrar órdenes enviadas
-- seguir estado de ejecución
+- recibir senales validadas
+- traducirlas a ordenes
+- controlar modo de operacion
+- registrar ordenes enviadas
+- seguir estado de ejecucion
 - administrar riesgo operativo
 
-Modos de operación:
+Modos de operacion:
 
 - `signal-only`
 - `paper-trading`
 - `live-trading`
 
-Capacidades de la capa de ejecución:
+Capacidades de la capa de ejecucion:
 
-- creación de órdenes de mercado o límite
-- control de tamaño de posición
-- stop loss y take profit automáticos
-- protección ante órdenes duplicadas
+- creacion de ordenes de mercado o limite
+- control de tamano de posicion
+- stop loss y take profit automaticos
+- proteccion ante ordenes duplicadas
 - logging de request/response con exchange
 - trazabilidad completa por trade
 
-La decisión de operar en vivo depende de métricas históricas, controles de riesgo y habilitación explícita de entorno.
+La decision de operar en vivo depende de metricas historicas, controles de riesgo y habilitacion explicita de entorno.
 
 ## Arquitectura
 
@@ -301,8 +320,10 @@ src/
     indicators.ts
     hybrid.strategy.ts
   backtesting/
-    engine.ts
-    simulator.ts
+    backtest.engine.ts
+    backtest-metrics.service.ts
+    backtest.service.ts
+    trade.simulator.ts
     optimizer.ts
     validator.ts
   notifications/
@@ -325,23 +346,24 @@ src/
 
 1. el collector obtiene velas nuevas
 2. las velas se almacenan en SQL Server
-3. la reconciliación diaria corrige gaps e inconsistencias
-4. el strategy engine consume histórico consolidado
-5. se genera una señal
-6. la señal se persiste y se notifica
-7. según el modo operativo, la señal puede derivar en paper trade o live order
+3. la reconciliacion diaria corrige gaps e inconsistencias
+4. el strategy engine consume historico consolidado
+5. se genera una senal
+6. la senal se persiste y se notifica
+7. segun el modo operativo, la senal puede derivar en paper trade o live order
 
 ### Flujo cuantitativo
 
-1. se ejecuta backtesting sobre histórico real
-2. se calculan métricas de retorno y riesgo
-3. el optimizador prueba configuraciones
-4. se valida fuera de muestra
-5. solo las configuraciones robustas pasan a operación
+1. se ejecuta backtesting sobre historico real
+2. se generan trades simulados y curva de equity
+3. se calculan metricas de retorno y riesgo
+4. el optimizador prueba configuraciones
+5. se valida fuera de muestra
+6. solo las configuraciones robustas pasan a operacion
 
-## Configuración
+## Configuracion
 
-Toda la configuración del sistema se resuelve por variables de entorno y configuración tipada.
+Toda la configuracion del sistema se resuelve por variables de entorno y configuracion tipada.
 
 Ejemplo:
 
@@ -360,10 +382,14 @@ SYMBOL=BTCUSDT
 TIMEFRAME=1h
 
 STRATEGY_DROP_PERCENT=8
+STRATEGY_RSI_PERIOD=14
 STRATEGY_RSI_LIMIT=35
 STRATEGY_VOLUME_MULTIPLIER=1
+STRATEGY_VOLUME_LOOKBACK_CANDLES=20
+STRATEGY_RECENT_HIGH_LOOKBACK_CANDLES=168
 STRATEGY_TAKE_PROFIT_PERCENT=5
 STRATEGY_STOP_LOSS_PERCENT=3
+STRATEGY_MAX_HOLDING_CANDLES=720
 
 BACKTEST_INITIAL_CAPITAL=10000
 BACKTEST_POSITION_SIZE_PERCENT=10
@@ -392,35 +418,34 @@ npm run paper-trading
 npm run live-trading
 ```
 
-## Diseño técnico
+## Diseno tecnico
 
 Principios aplicados:
 
-- separación estricta entre datos, estrategia, simulación y ejecución
+- separacion estricta entre datos, estrategia, simulacion y ejecucion
 - configurabilidad por entorno
 - idempotencia en persistencia
-- trazabilidad completa de señales, trades y órdenes
-- preparación para evolución gradual desde análisis a automatización
+- trazabilidad completa de senales, trades y ordenes
+- preparacion para evolucion gradual desde analisis a automatizacion
 
-El strategy engine puede cambiarse sin tocar collector, reconciliación, backtester ni ejecutor.
+El strategy engine puede cambiarse sin tocar collector, reconciliacion, backtester ni ejecutor.
 
-## Métricas de aceptación
+## Metricas de aceptacion
 
-Una estrategia se considera apta para producción cuando:
+Una estrategia se considera apta para produccion cuando:
 
 - muestra retorno consistente en training y validation
 - mantiene drawdown controlado
-- no depende de un único parámetro extremo
+- no depende de un unico parametro extremo
 - tiene cantidad razonable de operaciones
 - soporta costos operativos reales
 - conserva trazabilidad y reproducibilidad total
 
 ## Roadmap natural de madurez
 
-- `Fase 1`: data collection e integridad histórica
-- `Fase 2`: señales y alertas
-- `Fase 3`: backtesting y simulación robusta
-- `Fase 4`: optimización y validación estadística
+- `Fase 1`: data collection e integridad historica
+- `Fase 2`: senales y alertas
+- `Fase 3`: backtesting y simulacion robusta
+- `Fase 4`: optimizacion y validacion estadistica
 - `Fase 5`: paper trading
 - `Fase 6`: live trading con controles de riesgo
-

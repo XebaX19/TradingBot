@@ -197,4 +197,32 @@ export class HybridStrategy {
       ]
     };
   }
+
+  /**
+   * Devuelve la cantidad minima de velas horarias necesarias para que todos los
+   * filtros del modelo se calculen sin lookups parciales.
+   *
+   * Punto critico:
+   * La EMA200 diaria se deriva desde velas de 1h, por eso el warmup debe
+   * contemplar al menos 200 dias * 24 horas.
+   */
+  getRequiredHourlyHistory() {
+    const emaDailyWarmup =
+      200 * 24;
+    const localWarmup =
+      Math.max(
+        this.config.rsiPeriod + 1,
+        this.config.volumeLookbackCandles,
+        this.config.recentHighLookbackCandles
+      );
+
+    return Math.max(
+      emaDailyWarmup,
+      localWarmup
+    );
+  }
+
+  getStrategyName() {
+    return this.strategyName;
+  }
 }

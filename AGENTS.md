@@ -95,6 +95,8 @@ Reglas:
 - el collector y la reconciliación deben tolerar reinicios
 - los módulos de backtesting no deben depender del runtime de producción
 - todo resultado cuantitativo debe poder reproducirse
+- si un cambio implementa una capacidad, tabla, flujo, módulo o comportamiento que no esté reflejado en `README.md`, hay que actualizar `README.md` en la misma intervención
+- si una implementación cambia el alcance o el contrato funcional descrito en `README.md`, no dejar la documentación desalineada
 
 ## Reglas cuantitativas
 
@@ -208,3 +210,5 @@ El orden conceptual del producto es:
 ## Criterio general para futuras revisiones
 
 El agente no debe pensar en este repositorio como un simple bot de alertas. Debe tratarlo como una plataforma cuantitativa con pipeline completo desde market data hasta ejecución automática, con énfasis en consistencia matemática, control de riesgo y auditabilidad.
+
+Además, `README.md` debe mantenerse como la referencia funcional de alto nivel del sistema. Cualquier desvío relevante entre implementación y documentación debe corregirse durante el mismo cambio, no dejarse para después.

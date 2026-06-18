@@ -26,7 +26,23 @@ export interface BacktestTrade {
   exitReason: BacktestExitReason;
 }
 
-export interface BacktestResult {
+/**
+ * Snapshot de equity realizado luego de cada trade. Se usa para graficar la
+ * curva de capital y medir drawdown sin recalcular todo el backtest.
+ */
+export interface BacktestEquityPoint {
+  timestamp: Date;
+  equity: number;
+  drawdownPercent: number;
+  tradeNumber: number;
+}
+
+export interface BacktestExecutionResult {
+  trades: BacktestTrade[];
+  equityCurve: BacktestEquityPoint[];
+}
+
+export interface BacktestRunSummary {
   from: Date;
   to: Date;
   initialCapital: number;
@@ -43,5 +59,10 @@ export interface BacktestResult {
   maxDrawdown: number;
   bestTrade: BacktestTrade | null;
   worstTrade: BacktestTrade | null;
+}
+
+export interface BacktestResult
+  extends BacktestRunSummary {
+  equityCurve: BacktestEquityPoint[];
   trades: BacktestTrade[];
 }
