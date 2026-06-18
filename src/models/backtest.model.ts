@@ -9,7 +9,9 @@ export type BacktestExitReason =
   "MAX_HOLDING_TIME";
 
 export type BacktestEquityPointType =
-  "REALIZED" | "FLOATING";
+  "REALIZED" |
+  "FLOATING" |
+  "FLOATING_WORST";
 
 export interface BacktestTrade {
   signal: TradeSignal;

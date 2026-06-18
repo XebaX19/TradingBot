@@ -276,6 +276,15 @@ Parametros tipicos:
 
 La salida del optimizador incluye ranking, metricas comparativas y score compuesto de robustez.
 
+Senales cuantitativas consideradas en el ranking:
+
+- retorno de validation ajustado por drawdown
+- degradacion de retorno entre training y validation
+- degradacion de profit factor y expectancy
+- estabilidad de cantidad de trades
+- consistencia del perfil riesgo/retorno
+- estabilidad local de parametros dentro del grid
+
 Persistencia de optimizacion:
 
 - `optimization_runs`
@@ -299,10 +308,24 @@ Metricas adicionales:
 - estabilidad de parametros
 - estabilidad de cantidad de trades
 - estabilidad de drawdown
+- degradacion de profit factor
+- degradacion de expectancy
+- consistency score
+- flags explicitos de robustez o fragilidad
 
 El criterio de aceptacion no es "maximo retorno", sino consistencia ajustada por riesgo.
 
 Ademas del split simple, el sistema soporta `walk-forward analysis` sobre multiples ventanas temporales para validar estabilidad fuera de muestra en distintos periodos del mercado.
+
+El resumen walk-forward informa:
+
+- retorno promedio de validation
+- drawdown promedio de validation
+- consistency score promedio
+- degradacion promedio entre training y validation
+- porcentaje de ventanas robustas
+- dispersion de parametros ganadores
+- clasificacion global: `ROBUST`, `MIXED` o `WEAK`
 
 ### 8. Order Execution Layer
 

@@ -26,15 +26,23 @@ export interface ValidationAssessment {
   returnDegradationPercent: number;
   drawdownDeltaPercent: number;
   tradeCountDeltaPercent: number;
+  profitFactorDeltaPercent: number;
+  expectancyDeltaPercent: number;
+  trainingReturnOverDrawdown: number;
+  validationReturnOverDrawdown: number;
+  consistencyScore: number;
   robustnessScore: number;
   parameterStabilityScore: number;
   overfittingDetected: boolean;
   isRobust: boolean;
+  robustnessFlags: string[];
 }
 
 export interface OptimizationResult {
   split: DatasetSplit;
   candidateCount: number;
+  robustCandidateCount: number;
+  overfittedCandidateCount: number;
   rankedCandidates: ValidationAssessment[];
   bestCandidate: ValidationAssessment | null;
 }

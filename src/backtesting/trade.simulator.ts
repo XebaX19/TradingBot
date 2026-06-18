@@ -13,6 +13,8 @@ export interface TradeSimulatorConfig {
   commissionPercent: number;
   slippagePercent: number;
   positionSizePercent: number;
+  minTradeNotional: number;
+  quantityStep: number;
 }
 
 interface SimulatedExit {
@@ -39,7 +41,11 @@ export class TradeSimulator {
       slippagePercent:
         env.backtest.slippagePercent,
       positionSizePercent:
-        env.backtest.positionSizePercent
+        env.backtest.positionSizePercent,
+      minTradeNotional:
+        env.backtest.minTradeNotional,
+      quantityStep:
+        env.backtest.quantityStep
     }
   ) { }
 
@@ -57,13 +63,13 @@ export class TradeSimulator {
 
     const entryCandle =
       futureCandles[0];
-    const positionSize =
+    const targetPositionSize =
       equityBefore *
       (
         this.config.positionSizePercent / 100
       );
 
-    if (positionSize <= 0) {
+    if (targetPositionSize <= 0) {
       return null;
     }
 
@@ -73,8 +79,19 @@ export class TradeSimulator {
         1 +
         (this.config.slippagePercent / 100)
       );
+    const rawQuantity =
+      targetPositionSize / entryPrice;
     const quantity =
-      positionSize / entryPrice;
+      this.roundQuantity(rawQuantity);
+    const positionSize =
+      quantity * entryPrice;
+
+    if (
+      quantity <= 0 ||
+      positionSize < this.config.minTradeNotional
+    ) {
+      return null;
+    }
 
     const stopLossPrice =
       entryPrice *
@@ -265,17 +282,34 @@ export class TradeSimulator {
           entryFee -
           floatingExitFee;
 
-        return {
-          timestamp:
-            candle.openTime,
-          equity:
-            equityBefore + floatingNetPnl,
-          drawdownPercent: 0,
-          tradeNumber: index + 1,
-          pointType: "FLOATING" as const
-        };
+        return [
+          {
+            timestamp:
+              candle.openTime,
+            equity:
+              this.calculateFloatingEquity(
+                equityBefore,
+                quantity,
+                entryPrice,
+                entryFee,
+                candle.low
+              ),
+            drawdownPercent: 0,
+            tradeNumber: index + 1,
+            pointType: "FLOATING_WORST" as const
+          },
+          {
+            timestamp:
+              candle.openTime,
+            equity:
+              equityBefore + floatingNetPnl,
+            drawdownPercent: 0,
+            tradeNumber: index + 1,
+            pointType: "FLOATING" as const
+          }
+        ];
       }
-    );
+    ).flat();
   }
 
   private calculateMaxFavorableExcursionPercent(
@@ -326,5 +360,43 @@ export class TradeSimulator {
     return {
       ...this.config
     };
+  }
+
+  private calculateFloatingEquity(
+    equityBefore: number,
+    quantity: number,
+    entryPrice: number,
+    entryFee: number,
+    markPrice: number
+  ) {
+    const floatingExitNotional =
+      markPrice * quantity;
+    const floatingExitFee =
+      floatingExitNotional *
+      (
+        this.config.commissionPercent / 100
+      );
+    const floatingNetPnl =
+      (
+        (markPrice - entryPrice) *
+        quantity
+      ) -
+      entryFee -
+      floatingExitFee;
+
+    return equityBefore + floatingNetPnl;
+  }
+
+  private roundQuantity(
+    quantity: number
+  ) {
+    const step =
+      this.config.quantityStep;
+
+    if (step <= 0) {
+      return quantity;
+    }
+
+    return Math.floor(quantity / step) * step;
   }
 }

@@ -21,8 +21,19 @@ export interface WalkForwardResult {
   }>;
   averageValidationReturn: number;
   averageValidationDrawdown: number;
+  averageValidationConsistencyScore: number;
+  averageValidationDegradationPercent: number;
+  robustWindowRatePercent: number;
   robustWindows: number;
   totalWindows: number;
+  parameterConsistency: {
+    dropPercent: number[];
+    rsiLimit: number[];
+    volumeMultiplier: number[];
+    takeProfitPercent: number[];
+    stopLossPercent: number[];
+  };
+  overallAssessment: "ROBUST" | "MIXED" | "WEAK";
 }
 
 export class WalkForwardService {
@@ -94,9 +105,42 @@ export class WalkForwardService {
               sum + winner.validation.maxDrawdown,
             0
           ) / winners.length,
+      averageValidationConsistencyScore:
+        winners.length === 0
+          ? 0
+          : winners.reduce(
+            (sum, winner) =>
+              sum + winner.consistencyScore,
+            0
+          ) / winners.length,
+      averageValidationDegradationPercent:
+        winners.length === 0
+          ? 0
+          : winners.reduce(
+            (sum, winner) =>
+              sum + winner.returnDegradationPercent,
+            0
+          ) / winners.length,
+      robustWindowRatePercent:
+        results.length === 0
+          ? 0
+          : (
+            winners.filter(
+              winner => winner.isRobust
+            ).length / results.length
+          ) * 100,
       robustWindows:
         winners.filter(winner => winner.isRobust).length,
-      totalWindows: results.length
+      totalWindows: results.length,
+      parameterConsistency:
+        this.summarizeWinningParameters(
+          winners
+        ),
+      overallAssessment:
+        this.classifyOverallAssessment(
+          results.length,
+          winners
+        )
     };
   }
 
@@ -164,5 +208,95 @@ export class WalkForwardService {
     return totalMs <= 0
       ? 0.7
       : trainingMs / totalMs;
+  }
+
+  private summarizeWinningParameters(
+    winners: ValidationAssessment[]
+  ) {
+    return {
+      dropPercent:
+        this.getUniqueSorted(
+          winners.map(
+            winner =>
+              winner.parameters.dropPercent
+          )
+        ),
+      rsiLimit:
+        this.getUniqueSorted(
+          winners.map(
+            winner =>
+              winner.parameters.rsiLimit
+          )
+        ),
+      volumeMultiplier:
+        this.getUniqueSorted(
+          winners.map(
+            winner =>
+              winner.parameters.volumeMultiplier
+          )
+        ),
+      takeProfitPercent:
+        this.getUniqueSorted(
+          winners.map(
+            winner =>
+              winner.parameters.takeProfitPercent
+          )
+        ),
+      stopLossPercent:
+        this.getUniqueSorted(
+          winners.map(
+            winner =>
+              winner.parameters.stopLossPercent
+          )
+        )
+    };
+  }
+
+  private getUniqueSorted(
+    values: number[]
+  ) {
+    return Array.from(
+      new Set(values)
+    ).sort((a, b) => a - b);
+  }
+
+  private classifyOverallAssessment(
+    totalWindows: number,
+    winners: ValidationAssessment[]
+  ): "ROBUST" | "MIXED" | "WEAK" {
+    if (totalWindows === 0) {
+      return "WEAK";
+    }
+
+    const robustWindows =
+      winners.filter(
+        winner => winner.isRobust
+      ).length;
+    const robustRate =
+      robustWindows / totalWindows;
+    const averageConsistency =
+      winners.length === 0
+        ? 0
+        : winners.reduce(
+          (sum, winner) =>
+            sum + winner.consistencyScore,
+          0
+        ) / winners.length;
+
+    if (
+      robustRate >= 0.7 &&
+      averageConsistency >= 60
+    ) {
+      return "ROBUST";
+    }
+
+    if (
+      robustRate >= 0.4 &&
+      averageConsistency >= 45
+    ) {
+      return "MIXED";
+    }
+
+    return "WEAK";
   }
 }

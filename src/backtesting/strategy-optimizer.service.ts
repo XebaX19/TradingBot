@@ -50,14 +50,23 @@ export class StrategyOptimizerService {
         .slice()
         .sort(
           (a, b) =>
-            (b.robustnessScore + b.parameterStabilityScore * 0.2) -
-            (a.robustnessScore + a.parameterStabilityScore * 0.2)
+            this.calculateRankingScore(b) -
+            this.calculateRankingScore(a)
         );
 
     const result: OptimizationResult = {
       split,
       candidateCount:
         rankedCandidates.length,
+      robustCandidateCount:
+        rankedCandidates.filter(
+          candidate => candidate.isRobust
+        ).length,
+      overfittedCandidateCount:
+        rankedCandidates.filter(
+          candidate =>
+            candidate.overfittingDetected
+        ).length,
       rankedCandidates,
       bestCandidate:
         rankedCandidates[0] ?? null
@@ -132,11 +141,28 @@ export class StrategyOptimizerService {
         )
         /
         neighbors.length;
+      const robustNeighborRatio =
+        neighbors.filter(
+          neighbor => neighbor.isRobust
+        ).length /
+        neighbors.length;
 
       candidate.parameterStabilityScore =
-        (candidate.robustnessScore * 0.5) +
-        (averageNeighborScore * 0.5);
+        (candidate.consistencyScore * 0.4) +
+        (candidate.robustnessScore * 0.2) +
+        (averageNeighborScore * 0.2) +
+        (robustNeighborRatio * 100 * 0.2);
     }
+  }
+
+  private calculateRankingScore(
+    candidate: ValidationAssessment
+  ) {
+    return (
+      candidate.robustnessScore +
+      (candidate.parameterStabilityScore * 0.2) +
+      (candidate.consistencyScore * 0.2)
+    );
   }
 
   private isNeighbor(

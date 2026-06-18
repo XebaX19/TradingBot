@@ -108,7 +108,11 @@ export class StrategyValidatorService {
         slippagePercent:
           env.backtest.slippagePercent,
         positionSizePercent:
-          env.backtest.positionSizePercent
+          env.backtest.positionSizePercent,
+        minTradeNotional:
+          env.backtest.minTradeNotional,
+        quantityStep:
+          env.backtest.quantityStep
       });
     const engine =
       new BacktestEngine(
@@ -167,10 +171,56 @@ export class StrategyValidatorService {
         training.totalTrades,
         validation.totalTrades
       );
+    const profitFactorDeltaPercent =
+      this.calculateDegradationPercent(
+        this.normalizeProfitFactor(
+          training.profitFactor
+        ),
+        this.normalizeProfitFactor(
+          validation.profitFactor
+        )
+      );
+    const expectancyDeltaPercent =
+      this.calculateDegradationPercent(
+        training.expectancy,
+        validation.expectancy
+      );
+    const trainingReturnOverDrawdown =
+      this.calculateReturnOverDrawdown(
+        training.returnPercent,
+        training.maxDrawdown
+      );
+    const validationReturnOverDrawdown =
+      this.calculateReturnOverDrawdown(
+        validation.returnPercent,
+        validation.maxDrawdown
+      );
     const overfittingDetected =
       training.returnPercent > 0 &&
       validation.returnPercent < 0 &&
       returnDegradationPercent > 100;
+    const robustnessFlags =
+      this.buildRobustnessFlags(
+        training,
+        validation,
+        returnDegradationPercent,
+        drawdownDeltaPercent,
+        tradeCountDeltaPercent,
+        profitFactorDeltaPercent,
+        expectancyDeltaPercent,
+        overfittingDetected
+      );
+    const consistencyScore =
+      this.calculateConsistencyScore(
+        returnDegradationPercent,
+        drawdownDeltaPercent,
+        tradeCountDeltaPercent,
+        profitFactorDeltaPercent,
+        expectancyDeltaPercent,
+        trainingReturnOverDrawdown,
+        validationReturnOverDrawdown,
+        robustnessFlags
+      );
 
     const robustnessScore =
       this.calculateRobustnessScore(
@@ -179,15 +229,25 @@ export class StrategyValidatorService {
         returnDegradationPercent,
         drawdownDeltaPercent,
         tradeCountDeltaPercent,
-        overfittingDetected
+        profitFactorDeltaPercent,
+        expectancyDeltaPercent,
+        validationReturnOverDrawdown,
+        consistencyScore,
+        overfittingDetected,
+        robustnessFlags
       );
 
     const isRobust =
       !overfittingDetected &&
-      validation.returnPercent >= 0 &&
-      validation.totalTrades >= Math.max(1, Math.floor(training.totalTrades * 0.2)) &&
-      drawdownDeltaPercent <= 10 &&
-      returnDegradationPercent <= 60;
+      !robustnessFlags.some(
+        flag =>
+          flag === "NEGATIVE_VALIDATION_RETURN" ||
+          flag === "LOW_VALIDATION_TRADES" ||
+          flag === "RETURN_DEGRADATION_TOO_HIGH" ||
+          flag === "VALIDATION_PROFIT_FACTOR_BELOW_1" ||
+          flag === "NEGATIVE_VALIDATION_EXPECTANCY"
+      ) &&
+      consistencyScore >= 55;
 
     return {
       parameters,
@@ -197,10 +257,16 @@ export class StrategyValidatorService {
       returnDegradationPercent,
       drawdownDeltaPercent,
       tradeCountDeltaPercent,
+      profitFactorDeltaPercent,
+      expectancyDeltaPercent,
+      trainingReturnOverDrawdown,
+      validationReturnOverDrawdown,
+      consistencyScore,
       robustnessScore,
       parameterStabilityScore: 0,
       overfittingDetected,
-      isRobust
+      isRobust,
+      robustnessFlags
     };
   }
 
@@ -227,14 +293,20 @@ export class StrategyValidatorService {
     returnDegradationPercent: number,
     drawdownDeltaPercent: number,
     tradeCountDeltaPercent: number,
-    overfittingDetected: boolean
+    profitFactorDeltaPercent: number,
+    expectancyDeltaPercent: number,
+    validationReturnOverDrawdown: number,
+    consistencyScore: number,
+    overfittingDetected: boolean,
+    robustnessFlags: string[]
   ) {
     const trainingPerformance =
-      training.returnPercent -
-      (training.maxDrawdown * 0.5);
+      this.calculateReturnOverDrawdown(
+        training.returnPercent,
+        training.maxDrawdown
+      );
     const validationPerformance =
-      validation.returnPercent -
-      validation.maxDrawdown;
+      validationReturnOverDrawdown;
     const degradationPenalty =
       Math.max(0, returnDegradationPercent) * 0.6;
     const drawdownPenalty =
@@ -243,16 +315,164 @@ export class StrategyValidatorService {
       validation.totalTrades < 3
         ? 15
         : Math.max(0, tradeCountDeltaPercent - 50) * 0.1;
+    const profitFactorPenalty =
+      Math.max(0, profitFactorDeltaPercent) * 0.2;
+    const expectancyPenalty =
+      Math.max(0, expectancyDeltaPercent) * 0.15;
+    const robustnessFlagPenalty =
+      robustnessFlags.length * 4;
     const overfittingPenalty =
       overfittingDetected ? 50 : 0;
 
     return (
-      (validationPerformance * 1.5) +
-      (trainingPerformance * 0.5) -
+      (validationPerformance * 20) +
+      (trainingPerformance * 8) +
+      (consistencyScore * 0.6) -
       degradationPenalty -
       drawdownPenalty -
       tradePenalty -
+      profitFactorPenalty -
+      expectancyPenalty -
+      robustnessFlagPenalty -
       overfittingPenalty
+    );
+  }
+
+  private calculateReturnOverDrawdown(
+    returnPercent: number,
+    drawdownPercent: number
+  ) {
+    return returnPercent / Math.max(1, drawdownPercent);
+  }
+
+  private normalizeProfitFactor(
+    profitFactor: number
+  ) {
+    if (!Number.isFinite(profitFactor)) {
+      return 10;
+    }
+
+    return profitFactor;
+  }
+
+  private buildRobustnessFlags(
+    training: Awaited<ReturnType<BacktestService["execute"]>>,
+    validation: Awaited<ReturnType<BacktestService["execute"]>>,
+    returnDegradationPercent: number,
+    drawdownDeltaPercent: number,
+    tradeCountDeltaPercent: number,
+    profitFactorDeltaPercent: number,
+    expectancyDeltaPercent: number,
+    overfittingDetected: boolean
+  ) {
+    const flags: string[] = [];
+    const minimumValidationTrades =
+      Math.max(
+        3,
+        Math.floor(training.totalTrades * 0.2)
+      );
+
+    if (validation.returnPercent < 0) {
+      flags.push(
+        "NEGATIVE_VALIDATION_RETURN"
+      );
+    }
+
+    if (
+      validation.totalTrades <
+      minimumValidationTrades
+    ) {
+      flags.push(
+        "LOW_VALIDATION_TRADES"
+      );
+    }
+
+    if (returnDegradationPercent > 60) {
+      flags.push(
+        "RETURN_DEGRADATION_TOO_HIGH"
+      );
+    }
+
+    if (drawdownDeltaPercent > 10) {
+      flags.push(
+        "DRAWDOWN_EXPANSION"
+      );
+    }
+
+    if (validation.profitFactor < 1) {
+      flags.push(
+        "VALIDATION_PROFIT_FACTOR_BELOW_1"
+      );
+    }
+
+    if (profitFactorDeltaPercent > 50) {
+      flags.push(
+        "PROFIT_FACTOR_DEGRADATION"
+      );
+    }
+
+    if (validation.expectancy <= 0) {
+      flags.push(
+        "NEGATIVE_VALIDATION_EXPECTANCY"
+      );
+    }
+
+    if (expectancyDeltaPercent > 50) {
+      flags.push(
+        "EXPECTANCY_DEGRADATION"
+      );
+    }
+
+    if (overfittingDetected) {
+      flags.push(
+        "OVERFITTING_DETECTED"
+      );
+    }
+
+    return flags;
+  }
+
+  private calculateConsistencyScore(
+    returnDegradationPercent: number,
+    drawdownDeltaPercent: number,
+    tradeCountDeltaPercent: number,
+    profitFactorDeltaPercent: number,
+    expectancyDeltaPercent: number,
+    trainingReturnOverDrawdown: number,
+    validationReturnOverDrawdown: number,
+    robustnessFlags: string[]
+  ) {
+    const returnPenalty =
+      Math.max(0, returnDegradationPercent) * 0.35;
+    const drawdownPenalty =
+      Math.max(0, drawdownDeltaPercent) * 1.2;
+    const tradePenalty =
+      Math.max(0, tradeCountDeltaPercent) * 0.1;
+    const profitFactorPenalty =
+      Math.max(0, profitFactorDeltaPercent) * 0.15;
+    const expectancyPenalty =
+      Math.max(0, expectancyDeltaPercent) * 0.1;
+    const riskAdjustedGapPenalty =
+      Math.max(
+        0,
+        (
+          trainingReturnOverDrawdown -
+          validationReturnOverDrawdown
+        ) * 12
+      );
+    const flagPenalty =
+      robustnessFlags.length * 5;
+
+    return Math.max(
+      0,
+      100 -
+      returnPenalty -
+      drawdownPenalty -
+      tradePenalty -
+      profitFactorPenalty -
+      expectancyPenalty -
+      riskAdjustedGapPenalty -
+      flagPenalty
     );
   }
 }

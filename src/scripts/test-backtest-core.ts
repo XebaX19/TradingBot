@@ -71,7 +71,9 @@ function testStopLossPriority() {
       maxHoldingCandles: 10,
       commissionPercent: 0,
       slippagePercent: 0,
-      positionSizePercent: 10
+      positionSizePercent: 10,
+      minTradeNotional: 10,
+      quantityStep: 0.00001
     });
   const result =
     simulator.simulate(
@@ -98,7 +100,9 @@ function testFloatingCurve() {
       maxHoldingCandles: 10,
       commissionPercent: 0,
       slippagePercent: 0,
-      positionSizePercent: 10
+      positionSizePercent: 10,
+      minTradeNotional: 10,
+      quantityStep: 0.00001
     });
   const result =
     simulator.simulate(
@@ -121,9 +125,21 @@ function testFloatingCurve() {
     );
 
   assert.ok(result);
-  assert.equal(result.equityPoints.length, 2);
+  assert.equal(result.equityPoints.length, 4);
   assert.equal(result.trade.holdingCandles, 2);
   assert.ok(result.trade.maxFavorableExcursionPercent > 0);
+  assert.equal(
+    result.equityPoints.filter(
+      point => point.pointType === "FLOATING_WORST"
+    ).length,
+    2
+  );
+  assert.equal(
+    result.equityPoints.filter(
+      point => point.pointType === "FLOATING"
+    ).length,
+    2
+  );
 }
 
 function main() {
