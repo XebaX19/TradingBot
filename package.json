@@ -10,6 +10,7 @@
     "backfill-history": "ts-node src/scripts/historicalBackfill.ts",
     "test-market-data": "ts-node src/scripts/test-market-data.ts",
     "test-strategy": "ts-node src/scripts/test-strategy.ts",
+    "test-notification-telegram": "ts-node src/scripts/test-notification-telegram.ts",
     "test-backtest-core": "ts-node src/scripts/test-backtest-core.ts",
     "backtest": "ts-node src/scripts/run-backtest.ts",
     "optimize": "ts-node src/scripts/optimize-strategy.ts",

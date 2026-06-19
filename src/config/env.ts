@@ -136,6 +136,18 @@ export const env = {
     )
   },
 
+  telegram: {
+    botToken:
+      process.env.TELEGRAM_BOT_TOKEN || "",
+    chatId:
+      process.env.TELEGRAM_CHAT_ID || "",
+    enabled:
+      getBoolean(
+        process.env.TELEGRAM_ENABLED,
+        true
+      )
+  },
+
   execution: {
     mode:
       (

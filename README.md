@@ -190,6 +190,17 @@ Contenido esperado:
 - parametros activos
 - timestamp
 
+Configuracion requerida:
+
+- `TELEGRAM_ENABLED=true`
+- `TELEGRAM_BOT_TOKEN=<token de BotFather>`
+- `TELEGRAM_CHAT_ID=<chat id destino>`
+
+Comportamiento:
+
+- si la integracion esta configurada, cada `BUY_SIGNAL` persistida por el worker de estrategia dispara una notificacion
+- existe un script manual para probar conectividad y formato sin esperar una senal real
+
 Ejemplo:
 
 ```text
@@ -489,6 +500,7 @@ LIVE_POSITION_SIZE_PERCENT=5
 
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
+TELEGRAM_ENABLED=true
 
 TRADING_MODE=signal-only
 LIVE_TRADING_ENABLED=false
@@ -502,6 +514,7 @@ npm run backfill-history
 npm run reconciliation
 npm run test-market-data
 npm run test-strategy
+npm run test-notification-telegram
 npm run test-backtest-core
 npm run backtest
 npm run optimize
@@ -538,6 +551,18 @@ Walk-forward sobre multiples ventanas:
 npm run walk-forward -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --trainDays=730 --validationDays=180 --stepDays=90 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5
 ```
 
+Prueba manual de Telegram con mensaje por defecto:
+
+```bash
+npm run test-notification-telegram
+```
+
+Prueba manual de Telegram con mensaje configurable:
+
+```bash
+npm run test-notification-telegram -- --message="TradingBot test desde desarrollo"
+```
+
 Backfill historico para una ventana acotada:
 
 ```bash
@@ -555,6 +580,7 @@ Notas:
 - en los scripts que usan `--from` y `--to` con backtesting conviene usar timestamps UTC completos
 - `validate-strategy` usa la configuracion activa de `env.strategy`
 - `optimize` permite sobrescribir la grilla por linea de comandos y persiste ranking si la base tiene los schemas de optimizacion
+- `test-notification-telegram` usa `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`; si faltan, informa que no esta configurado
 
 ## Diseno tecnico
 

@@ -8,6 +8,7 @@ import { CandleReconciliationWorker } from "./workers/candle-reconciliation.work
 import { StrategyWorker } from "./workers/strategy.worker";
 import { MarketDataService } from "./data/market-data.service";
 import { OrderExecutorService } from "./execution/order-executor.service";
+import { TelegramService } from "./notifications/telegram.service";
 import { RiskManager } from "./execution/risk-manager";
 import { OrderRepository } from "./repositories/order.repository";
 import { HybridStrategy } from "./strategy/hybrid.strategy";
@@ -50,7 +51,8 @@ const strategyWorker =
     new OrderExecutorService(
       new RiskManager(),
       new OrderRepository(sql)
-    )
+    ),
+    new TelegramService()
   );
 
 strategyWorker.start();

@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { OrderExecutorService } from "../execution/order-executor.service";
 import { MarketDataService } from "../data/market-data.service";
 import { HybridStrategy } from "../strategy/hybrid.strategy";
+import { TelegramService } from "../notifications/telegram.service";
 import { logger } from "../shared/logger";
 import { SignalRepository } from "../repositories/signal.repository";
 
@@ -10,7 +11,8 @@ export class StrategyWorker {
     private marketData: MarketDataService,
     private strategy: HybridStrategy,
     private signalRepository: SignalRepository,
-    private orderExecutor?: OrderExecutorService
+    private orderExecutor?: OrderExecutorService,
+    private telegramService?: TelegramService
   ) { }
 
   start() {
@@ -72,6 +74,12 @@ export class StrategyWorker {
       await this.signalRepository.save(
         signal
       );
+
+      if (this.telegramService) {
+        await this.telegramService.sendSignalNotification(
+          signal
+        );
+      }
 
       if (this.orderExecutor) {
         await this.orderExecutor.handleSignal(
