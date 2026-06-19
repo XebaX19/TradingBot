@@ -233,10 +233,10 @@ export class CandleRepository {
         symbol,
         timeframe,
         open_time,
-        open,
-        high,
-        low,
-        close,
+        [open],
+        [high],
+        [low],
+        [close],
         volume
       FROM candles
       WHERE symbol = @symbol

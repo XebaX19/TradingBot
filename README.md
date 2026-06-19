@@ -450,6 +450,8 @@ Toda la configuracion del sistema se resuelve por variables de entorno y configu
 Ejemplo:
 
 ```env
+LOG_LEVEL=warn
+
 SQL_SERVER=
 SQL_DATABASE=
 SQL_USER=

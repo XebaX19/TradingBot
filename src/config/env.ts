@@ -45,6 +45,12 @@ function getBoolean(
 }
 
 export const env = {
+  logging: {
+    level:
+      process.env.LOG_LEVEL ||
+      "info"
+  },
+
   sql: {
     server: process.env.SQL_SERVER!,
     database: process.env.SQL_DATABASE!,

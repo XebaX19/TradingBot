@@ -1,9 +1,10 @@
 import winston from "winston";
+import { env } from "../config/env";
 
 export const logger =
   winston.createLogger({
 
-    level: "info",
+    level: env.logging.level,
 
     format:
       winston.format.combine(
