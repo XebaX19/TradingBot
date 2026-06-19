@@ -5,6 +5,7 @@ import {
   BacktestExecutionResult,
   BacktestTrade
 } from "../models/backtest.model";
+import { getIntervalMs } from "../shared/date.utils";
 import { HybridStrategy } from "../strategy/hybrid.strategy";
 import { BacktestDataValidatorService } from "./backtest-data-validator.service";
 import { TradeSimulator } from "./trade.simulator";
@@ -34,13 +35,21 @@ export class BacktestEngine {
     from: Date,
     to: Date
   ): Promise<BacktestExecutionResult> {
-    const candles =
-      await this.marketData.getHourlyRange(
-        from,
-        to
-      );
     const warmupCandles =
       this.strategy.getRequiredHourlyHistory();
+    const warmupFrom =
+      new Date(
+        from.getTime() -
+        (
+          warmupCandles *
+          getIntervalMs(env.market.timeframe)
+        )
+      );
+    const candles =
+      await this.marketData.getHourlyRange(
+        warmupFrom,
+        to
+      );
     const dataQuality =
       this.dataValidator.validate(
         candles,
@@ -50,6 +59,27 @@ export class BacktestEngine {
     if (!dataQuality.isValid) {
       throw new Error(
         `Backtest dataset validation failed: ${dataQuality.issues.map(issue => issue.detail).join(" | ")}`
+      );
+    }
+
+    const evaluationStartIndex =
+      candles.findIndex(
+        candle =>
+          candle.openTime >= from
+      );
+
+    if (evaluationStartIndex === -1) {
+      throw new Error(
+        "Backtest dataset validation failed: requested period has no candles available for evaluation"
+      );
+    }
+
+    if (
+      evaluationStartIndex <
+      warmupCandles
+    ) {
+      throw new Error(
+        `Backtest dataset validation failed: requested period requires at least ${warmupCandles} warmup candles before ${from.toISOString()}`
       );
     }
 
@@ -69,7 +99,11 @@ export class BacktestEngine {
       this.config.initialCapital;
 
     for (
-      let i = warmupCandles;
+      let i =
+        Math.max(
+          warmupCandles,
+          evaluationStartIndex
+        );
       i < candles.length - 1;
       i++
     ) {

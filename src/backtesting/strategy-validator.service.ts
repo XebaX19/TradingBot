@@ -4,6 +4,10 @@ import {
   DatasetSplit,
   ValidationAssessment
 } from "../models/optimization.model";
+import {
+  addUtcDays,
+  startOfUtcDay
+} from "../shared/date.utils";
 import { HybridStrategy, HybridStrategyConfig } from "../strategy/hybrid.strategy";
 import { BacktestEngine } from "./backtest.engine";
 import { BacktestDataValidatorService } from "./backtest-data-validator.service";
@@ -58,12 +62,39 @@ export class StrategyValidatorService {
       );
     }
 
+    const desiredValidationStart =
+      addUtcDays(
+        startOfUtcDay(
+          candles[splitIndex].openTime
+        ),
+        1
+      );
+    const validationStartIndex =
+      candles.findIndex(
+        candle =>
+          candle.openTime >=
+          desiredValidationStart
+      );
+
+    if (
+      validationStartIndex <= 0 ||
+      validationStartIndex >= candles.length
+    ) {
+      throw new Error(
+        "Unable to create a day-aligned training/validation split with the requested range"
+      );
+    }
+
     return {
       trainingFrom: candles[0].openTime,
-      trainingTo: candles[splitIndex].openTime,
-      validationFrom: candles[splitIndex + 1].openTime,
+      trainingTo:
+        candles[validationStartIndex - 1].openTime,
+      validationFrom:
+        candles[validationStartIndex].openTime,
       validationTo: candles[candles.length - 1].openTime,
-      splitRatio: boundedRatio,
+      splitRatio:
+        validationStartIndex /
+        candles.length,
       totalCandles: candles.length
     };
   }

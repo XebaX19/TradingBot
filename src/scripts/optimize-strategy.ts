@@ -116,6 +116,8 @@ async function main() {
         split: result.split,
         bestCandidate:
           result.bestCandidate,
+        bestOverallCandidate:
+          result.bestOverallCandidate,
         topCandidates:
           result.rankedCandidates.slice(0, top)
       },

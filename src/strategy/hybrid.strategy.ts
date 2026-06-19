@@ -118,10 +118,14 @@ export class HybridStrategy {
 
     const volumeWindow =
       hourly.slice(
-        -this.config.volumeLookbackCandles
+        -(this.config.volumeLookbackCandles + 1),
+        -1
       );
 
-    if (volumeWindow.length === 0) {
+    if (
+      volumeWindow.length <
+      this.config.volumeLookbackCandles
+    ) {
       return null;
     }
 

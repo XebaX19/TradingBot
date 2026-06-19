@@ -45,4 +45,5 @@ export interface OptimizationResult {
   overfittedCandidateCount: number;
   rankedCandidates: ValidationAssessment[];
   bestCandidate: ValidationAssessment | null;
+  bestOverallCandidate: ValidationAssessment | null;
 }

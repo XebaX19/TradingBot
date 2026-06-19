@@ -320,6 +320,12 @@ Senales cuantitativas consideradas en el ranking:
 - consistencia del perfil riesgo/retorno
 - estabilidad local de parametros dentro del grid
 
+Criterios operativos del optimizador:
+
+- `bestCandidate` representa la mejor configuracion que realmente supera los filtros de robustez
+- `bestOverallCandidate` conserva el mejor score bruto del ranking aunque no sea robusto
+- si no existe ningun candidato robusto, el sistema no deberia considerar listo el resultado para paper trading
+
 Persistencia de optimizacion:
 
 - `optimization_runs`
@@ -335,6 +341,12 @@ Proceso:
 2. evaluar la mejor configuracion sobre `validation`
 3. medir degradacion de performance
 4. detectar senales de overfitting
+
+Reglas de construccion del split:
+
+- el corte entre `training` y `validation` se alinea a bordes diarios UTC
+- la validacion usa warmup historico previo para que indicadores como `EMA200` y `RSI` no arranquen en frio
+- los trades de validacion solo se contabilizan dentro del rango fuera de muestra, aunque el calculo use pre-roll anterior
 
 Metricas adicionales:
 

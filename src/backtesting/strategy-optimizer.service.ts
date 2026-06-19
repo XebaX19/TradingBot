@@ -53,6 +53,10 @@ export class StrategyOptimizerService {
             this.calculateRankingScore(b) -
             this.calculateRankingScore(a)
         );
+    const bestRobustCandidate =
+      rankedCandidates.find(
+        candidate => candidate.isRobust
+      ) ?? null;
 
     const result: OptimizationResult = {
       split,
@@ -69,6 +73,8 @@ export class StrategyOptimizerService {
         ).length,
       rankedCandidates,
       bestCandidate:
+        bestRobustCandidate,
+      bestOverallCandidate:
         rankedCandidates[0] ?? null
     };
 
