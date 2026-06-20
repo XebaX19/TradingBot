@@ -6,6 +6,7 @@ import { env } from "../config/env";
 import { SqlService } from "../database/sql.service";
 import { Candle } from "../models/candle.model";
 import { CandleRepository } from "../repositories/candle.repository";
+import { configureScriptLogging } from "./script-logging.utils";
 
 const args =
   minimist(
@@ -90,6 +91,11 @@ function validateNumericFields(
 }
 
 async function main() {
+  configureScriptLogging(
+    args.logLevel,
+    "info"
+  );
+
   const file =
     args.file || args.path;
 

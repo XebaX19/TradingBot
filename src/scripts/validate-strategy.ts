@@ -5,6 +5,7 @@ import { env } from "../config/env";
 import { MarketDataService } from "../data/market-data.service";
 import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
+import { configureScriptLogging } from "./script-logging.utils";
 import {
   isSummaryMode,
   summarizeValidationResult
@@ -29,6 +30,11 @@ function parseDate(
 }
 
 async function main() {
+  configureScriptLogging(
+    args.logLevel,
+    "info"
+  );
+
   const from =
     parseDate(
       args.from || "2020-01-01T00:00:00.000Z"

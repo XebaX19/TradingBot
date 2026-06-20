@@ -5,6 +5,7 @@ import { BinanceClient } from "../data/binance.client";
 import { CandleReconciliationService } from "../data/reconciliation.service";
 import { env } from "../config/env";
 import { clampToLastClosedCandleUtc } from "../shared/date.utils";
+import { configureScriptLogging } from "./script-logging.utils";
 
 const args =
   minimist(
@@ -32,6 +33,11 @@ function parseLocalDate(value: string, hour: number) {
 }
 
 async function main() {
+  configureScriptLogging(
+    args.logLevel,
+    "info"
+  );
+
   if (!args.from || !args.to) {
     throw new Error(
       `

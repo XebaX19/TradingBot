@@ -4,6 +4,7 @@ import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { env } from "../config/env";
 import { logger } from "../shared/logger";
+import { configureScriptLogging } from "./script-logging.utils";
 import {
   clampToLastClosedCandleUtc,
   getIntervalMs
@@ -211,7 +212,10 @@ async function backfillDay(
 }
 
 async function main() {
-  logger.level = "warn";
+  configureScriptLogging(
+    args.logLevel,
+    "info"
+  );
 
   validateInterval();
 

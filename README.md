@@ -635,6 +635,7 @@ Notas:
 - en los scripts que usan `--from` y `--to` con backtesting conviene usar timestamps UTC completos
 - `validate-strategy` usa la configuracion activa de `env.strategy`
 - `validate-strategy`, `backtest`, `optimize-strategy` y `walk-forward` aceptan `--summary` para devolver una salida compacta orientada a evaluacion
+- los scripts manuales aceptan `--logLevel` para forzar el nivel de logs sin cambiar `LOG_LEVEL` global del entorno
 - `optimize` permite sobrescribir la grilla por linea de comandos y persiste ranking si la base tiene los schemas de optimizacion
 - `test-notification-telegram` usa `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`; si faltan, informa que no esta configurado
 - `import-binance-vision-csv` importa un CSV local de Binance Vision; si el archivo original es `.zip`, primero hay que extraerlo; la salida separa `inserted` de `alreadyExisting`

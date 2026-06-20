@@ -25,3 +25,9 @@ export const logger =
       })
     ]
   });
+
+export function setLoggerLevel(
+  level: string
+) {
+  logger.level = level;
+}

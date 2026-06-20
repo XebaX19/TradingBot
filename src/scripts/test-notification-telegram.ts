@@ -1,5 +1,6 @@
 import minimist from "minimist";
 import { TelegramService } from "../notifications/telegram.service";
+import { configureScriptLogging } from "./script-logging.utils";
 
 const args =
   minimist(
@@ -27,6 +28,11 @@ function buildMessage() {
 }
 
 async function main() {
+  configureScriptLogging(
+    args.logLevel,
+    "info"
+  );
+
   const telegram =
     new TelegramService();
   const sent =

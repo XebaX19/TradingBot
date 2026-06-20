@@ -10,6 +10,7 @@ import { SqlService } from "../database/sql.service";
 import { BacktestRepository } from "../repositories/backtest.repository";
 import { CandleRepository } from "../repositories/candle.repository";
 import { HybridStrategy } from "../strategy/hybrid.strategy";
+import { configureScriptLogging } from "./script-logging.utils";
 import {
   isSummaryMode,
   summarizeBacktestResult
@@ -34,6 +35,11 @@ function parseDate(
 }
 
 async function main() {
+  configureScriptLogging(
+    args.logLevel,
+    "info"
+  );
+
   const from =
     parseDate(
       args.from || "2020-01-01T00:00:00.000Z"

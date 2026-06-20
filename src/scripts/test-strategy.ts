@@ -2,8 +2,14 @@ import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { MarketDataService } from "../data/market-data.service";
 import { HybridStrategy } from "../strategy/hybrid.strategy";
+import { configureScriptLogging } from "./script-logging.utils";
 
 async function main() {
+  configureScriptLogging(
+    undefined,
+    "info"
+  );
+
   const marketData =
     new MarketDataService(
       new CandleRepository(

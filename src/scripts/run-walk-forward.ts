@@ -7,6 +7,7 @@ import { StrategyParameterGrid } from "../models/optimization.model";
 import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { MarketDataService } from "../data/market-data.service";
+import { configureScriptLogging } from "./script-logging.utils";
 import {
   isSummaryMode,
   summarizeWalkForwardResult
@@ -60,6 +61,11 @@ function buildGrid(): StrategyParameterGrid {
 }
 
 async function main() {
+  configureScriptLogging(
+    args.logLevel,
+    "info"
+  );
+
   const from =
     parseDate(
       args.from || "2020-01-01T00:00:00.000Z"
