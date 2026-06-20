@@ -5,7 +5,6 @@ import { ReconciliationRepository } from "../repositories/reconciliation.reposit
 import { CandleRepository } from "../repositories/candle.repository";
 import { logger } from "../shared/logger";
 import {
-  clampToLastClosedCandleUtc,
   endOfUtcDay,
   startOfUtcDay
 } from "../shared/date.utils";
@@ -79,71 +78,37 @@ Period: ${from.toISOString()} - ${to.toISOString()}
   }
 
   /**
-   * Si detectamos que el dataset esta retrasado respecto de la ultima vela
-   * cerrada, reconciliamos todos los dias impactados completos. No validamos
-   * solo el hueco puntual porque eso podria dejar faltantes mas viejos dentro
-   * del mismo dia sin revisar.
+   * Regla operativa:
+   * la reconciliacion automatica diaria valida siempre el dia UTC anterior
+   * completo. No incluye velas del dia actual aunque ya esten cerradas.
    */
   private async resolveReconciliationWindow() {
     const now =
       new Date();
-    const lastClosedOpenTime =
-      clampToLastClosedCandleUtc(
-        now,
-        now,
-        env.market.timeframe
-      );
     const defaultDay =
-      new Date(lastClosedOpenTime);
+      new Date(now);
 
     defaultDay.setUTCDate(
       defaultDay.getUTCDate() - 1
     );
-
-    if (!this.candleRepository) {
-      return {
-        from: startOfUtcDay(defaultDay),
-        to: endOfUtcDay(
-          defaultDay,
-          env.market.timeframe
-        )
-      };
-    }
-
-    const lastStoredOpenTime =
-      await this.candleRepository.getLastCandle(
-        env.market.symbol,
+    const defaultFrom =
+      startOfUtcDay(defaultDay);
+    const defaultTo =
+      endOfUtcDay(
+        defaultDay,
         env.market.timeframe
       );
 
-    if (!lastStoredOpenTime) {
+    if (!this.candleRepository) {
       return {
-        from: startOfUtcDay(defaultDay),
-        to: endOfUtcDay(
-          defaultDay,
-          env.market.timeframe
-        )
-      };
-    }
-
-    const normalizedLastStored =
-      new Date(lastStoredOpenTime);
-
-    if (normalizedLastStored >= lastClosedOpenTime) {
-      return {
-        from: startOfUtcDay(defaultDay),
-        to: endOfUtcDay(
-          defaultDay,
-          env.market.timeframe
-        )
+        from: defaultFrom,
+        to: defaultTo
       };
     }
 
     return {
-      from: startOfUtcDay(
-        normalizedLastStored
-      ),
-      to: lastClosedOpenTime
+      from: defaultFrom,
+      to: defaultTo
     };
   }
 }
