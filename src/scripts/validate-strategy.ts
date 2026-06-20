@@ -5,6 +5,10 @@ import { env } from "../config/env";
 import { MarketDataService } from "../data/market-data.service";
 import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
+import {
+  isSummaryMode,
+  summarizeValidationResult
+} from "./script-output.utils";
 
 const args =
   minimist(
@@ -58,13 +62,20 @@ async function main() {
       env.strategy,
       split
     );
+  const output =
+    isSummaryMode(args.summary)
+      ? summarizeValidationResult(
+        split,
+        result
+      )
+      : {
+        split,
+        result
+      };
 
   console.log(
     JSON.stringify(
-      {
-        split,
-        result
-      },
+      output,
       null,
       2
     )

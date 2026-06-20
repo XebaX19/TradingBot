@@ -7,6 +7,10 @@ import { StrategyParameterGrid } from "../models/optimization.model";
 import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { MarketDataService } from "../data/market-data.service";
+import {
+  isSummaryMode,
+  summarizeWalkForwardResult
+} from "./script-output.utils";
 
 const args =
   minimist(
@@ -95,10 +99,16 @@ async function main() {
       validationDays,
       stepDays
     );
+  const output =
+    isSummaryMode(args.summary)
+      ? summarizeWalkForwardResult(
+        result
+      )
+      : result;
 
   console.log(
     JSON.stringify(
-      result,
+      output,
       null,
       2
     )

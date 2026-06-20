@@ -92,15 +92,28 @@ export class BacktestDataValidatorService {
         issues.push({
           type: "DUPLICATE",
           timestamp: candle.openTime,
-          detail: "Detected duplicate candle timestamp inside dataset"
+          detail:
+            `Duplicate candle timestamp at ${candle.openTime.toISOString()}`
         });
       } else if (delta !== intervalMs) {
         gapCount += 1;
+        const missingCandles =
+          Math.max(
+            0,
+            Math.floor(
+              delta / intervalMs
+            ) - 1
+          );
+        const expectedNext =
+          new Date(
+            previous.openTime.getTime() +
+            intervalMs
+          );
         issues.push({
           type: "GAP",
           timestamp: candle.openTime,
           detail:
-            `Expected ${intervalMs}ms between candles and found ${delta}ms`
+            `Gap after ${previous.openTime.toISOString()} and before ${candle.openTime.toISOString()} (${missingCandles} missing candle(s), expected next ${expectedNext.toISOString()}, found delta ${delta}ms)`
         });
       }
     }

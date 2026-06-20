@@ -523,6 +523,7 @@ LIVE_TRADING_ENABLED=false
 ```bash
 npm start
 npm run backfill-history
+npm run import-binance-vision-csv
 npm run reconciliation
 npm run test-market-data
 npm run test-strategy
@@ -545,10 +546,22 @@ Backtest simple sobre un rango historico:
 npm run backtest -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z
 ```
 
+Backtest resumido:
+
+```bash
+npm run backtest -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --summary
+```
+
 Validacion de la configuracion activa con split `70/30`:
 
 ```bash
 npm run validate-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7
+```
+
+Validacion resumida:
+
+```bash
+npm run validate-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7 --summary
 ```
 
 Optimizacion de parametros con grilla explicita:
@@ -557,10 +570,22 @@ Optimizacion de parametros con grilla explicita:
 npm run optimize-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --top=5
 ```
 
+Optimizacion resumida:
+
+```bash
+npm run optimize-strategy -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --splitRatio=0.7 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --top=5 --summary
+```
+
 Walk-forward sobre multiples ventanas:
 
 ```bash
 npm run walk-forward -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --trainDays=730 --validationDays=180 --stepDays=90 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5
+```
+
+Walk-forward resumido:
+
+```bash
+npm run walk-forward -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --trainDays=730 --validationDays=180 --stepDays=90 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --summary
 ```
 
 Prueba manual de Telegram con mensaje por defecto:
@@ -581,6 +606,18 @@ Backfill historico para una ventana acotada:
 npm run backfill-history -- --from=2024-01-01 --to=2024-03-31 --delayMs=1000
 ```
 
+Importacion de CSV descargado desde Binance Vision:
+
+```bash
+npm run import-binance-vision-csv -- --file="C:\Users\sebab\Downloads\BTCUSDT-1h-2020-02.csv"
+```
+
+Importacion de CSV filtrando solo el rango faltante:
+
+```bash
+npm run import-binance-vision-csv -- --file="C:\Users\sebab\Downloads\BTCUSDT-1h-2020-02.csv" --from=2019-08-15T02:00:00.000Z --to=2019-08-15T09:00:00.000Z
+```
+
 Reconciliacion manual para un rango:
 
 ```bash
@@ -591,8 +628,10 @@ Notas:
 
 - en los scripts que usan `--from` y `--to` con backtesting conviene usar timestamps UTC completos
 - `validate-strategy` usa la configuracion activa de `env.strategy`
+- `validate-strategy`, `backtest`, `optimize-strategy` y `walk-forward` aceptan `--summary` para devolver una salida compacta orientada a evaluacion
 - `optimize` permite sobrescribir la grilla por linea de comandos y persiste ranking si la base tiene los schemas de optimizacion
 - `test-notification-telegram` usa `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`; si faltan, informa que no esta configurado
+- `import-binance-vision-csv` importa un CSV local de Binance Vision; si el archivo original es `.zip`, primero hay que extraerlo; la salida separa `inserted` de `alreadyExisting`
 
 ## Diseno tecnico
 

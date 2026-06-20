@@ -7,6 +7,10 @@ import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { MarketDataService } from "../data/market-data.service";
 import { OptimizationRepository } from "../repositories/optimization.repository";
+import {
+  isSummaryMode,
+  summarizeOptimizationResult
+} from "./script-output.utils";
 
 const args =
   minimist(
@@ -109,10 +113,13 @@ async function main() {
       buildGrid(),
       splitRatio
     );
-
-  console.log(
-    JSON.stringify(
-      {
+  const output =
+    isSummaryMode(args.summary)
+      ? summarizeOptimizationResult(
+        result,
+        top
+      )
+      : {
         split: result.split,
         bestCandidate:
           result.bestCandidate,
@@ -120,7 +127,11 @@ async function main() {
           result.bestOverallCandidate,
         topCandidates:
           result.rankedCandidates.slice(0, top)
-      },
+      };
+
+  console.log(
+    JSON.stringify(
+      output,
       null,
       2
     )

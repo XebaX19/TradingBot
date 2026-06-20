@@ -57,8 +57,26 @@ export class BacktestEngine {
       );
 
     if (!dataQuality.isValid) {
+      const issuePreview =
+        dataQuality.issues
+          .slice(0, 20)
+          .map(
+            issue =>
+              `- ${issue.type}: ${issue.detail}`
+          )
+          .join("\n");
+
       throw new Error(
-        `Backtest dataset validation failed: ${dataQuality.issues.map(issue => issue.detail).join(" | ")}`
+        [
+          "Backtest dataset validation failed.",
+          `Expected candles: ${dataQuality.expectedCandles}.`,
+          `Actual candles: ${dataQuality.actualCandles}.`,
+          `Gap count: ${dataQuality.gapCount}.`,
+          `Duplicate count: ${dataQuality.duplicateCount}.`,
+          `Invalid candle count: ${dataQuality.invalidCandleCount}.`,
+          "First issues:",
+          issuePreview
+        ].join("\n")
       );
     }
 

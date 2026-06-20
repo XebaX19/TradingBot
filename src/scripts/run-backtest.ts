@@ -10,6 +10,10 @@ import { SqlService } from "../database/sql.service";
 import { BacktestRepository } from "../repositories/backtest.repository";
 import { CandleRepository } from "../repositories/candle.repository";
 import { HybridStrategy } from "../strategy/hybrid.strategy";
+import {
+  isSummaryMode,
+  summarizeBacktestResult
+} from "./script-output.utils";
 
 const args =
   minimist(
@@ -70,10 +74,16 @@ async function main() {
       from,
       to
     );
+  const output =
+    isSummaryMode(args.summary)
+      ? summarizeBacktestResult(
+        result
+      )
+      : result;
 
   console.log(
     JSON.stringify(
-      result,
+      output,
       null,
       2
     )

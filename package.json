@@ -8,6 +8,7 @@
     "start": "ts-node src/main.ts",
     "reconciliation": "ts-node src/scripts/manualReconciliation.ts",
     "backfill-history": "ts-node src/scripts/historicalBackfill.ts",
+    "import-binance-vision-csv": "ts-node src/scripts/import-binance-vision-csv.ts",
     "test-market-data": "ts-node src/scripts/test-market-data.ts",
     "test-strategy": "ts-node src/scripts/test-strategy.ts",
     "test-notification-telegram": "ts-node src/scripts/test-notification-telegram.ts",
