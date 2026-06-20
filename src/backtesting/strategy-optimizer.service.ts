@@ -8,6 +8,15 @@ import { OptimizationRepository } from "../repositories/optimization.repository"
 import { HybridStrategyConfig } from "../strategy/hybrid.strategy";
 import { StrategyValidatorService } from "./strategy-validator.service";
 
+export interface StrategyOptimizationHooks {
+  onCandidateEvaluated?: (
+    current: number,
+    total: number,
+    parameters: HybridStrategyConfig,
+    assessment: ValidationAssessment
+  ) => void;
+}
+
 export class StrategyOptimizerService {
   constructor(
     private validator: StrategyValidatorService,
@@ -19,7 +28,8 @@ export class StrategyOptimizerService {
     from: Date,
     to: Date,
     grid: StrategyParameterGrid,
-    splitRatio: number = 0.7
+    splitRatio: number = 0.7,
+    hooks?: StrategyOptimizationHooks
   ): Promise<OptimizationResult> {
     const split =
       await this.validator.createDatasetSplit(
@@ -30,8 +40,12 @@ export class StrategyOptimizerService {
     const parameterSets =
       this.generateParameterSets(grid);
     const candidates: ValidationAssessment[] = [];
+    const totalCandidates =
+      parameterSets.length;
 
-    for (const parameters of parameterSets) {
+    for (let i = 0; i < parameterSets.length; i++) {
+      const parameters =
+        parameterSets[i];
       const assessment =
         await this.validator.validateParameters(
           parameters,
@@ -39,6 +53,12 @@ export class StrategyOptimizerService {
         );
 
       candidates.push(assessment);
+      hooks?.onCandidateEvaluated?.(
+        i + 1,
+        totalCandidates,
+        parameters,
+        assessment
+      );
     }
 
     this.applyParameterStabilityScores(

@@ -594,6 +594,12 @@ Walk-forward resumido:
 npm run walk-forward -- --from=2020-01-01T00:00:00.000Z --to=2024-12-31T23:00:00.000Z --trainDays=730 --validationDays=180 --stepDays=90 --drop=5,7,8,10,12 --rsi=25,30,35 --volume=1,1.2 --tp=3,5,8 --sl=2,3,5 --summary
 ```
 
+Progreso visible en scripts largos:
+
+- `validate-strategy`: etapas de training, validation y assessment
+- `optimize-strategy`: avance por candidato evaluado
+- `walk-forward`: avance por ventana temporal
+
 Prueba manual de Telegram con mensaje por defecto:
 
 ```bash
@@ -636,6 +642,7 @@ Notas:
 - `validate-strategy` usa la configuracion activa de `env.strategy`
 - `validate-strategy`, `backtest`, `optimize-strategy` y `walk-forward` aceptan `--summary` para devolver una salida compacta orientada a evaluacion
 - los scripts manuales aceptan `--logLevel` para forzar el nivel de logs sin cambiar `LOG_LEVEL` global del entorno
+- `validate-strategy`, `optimize-strategy` y `walk-forward` muestran progreso en consola para corridas largas
 - `optimize` permite sobrescribir la grilla por linea de comandos y persiste ranking si la base tiene los schemas de optimizacion
 - `test-notification-telegram` usa `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`; si faltan, informa que no esta configurado
 - `import-binance-vision-csv` importa un CSV local de Binance Vision; si el archivo original es `.zip`, primero hay que extraerlo; la salida separa `inserted` de `alreadyExisting`

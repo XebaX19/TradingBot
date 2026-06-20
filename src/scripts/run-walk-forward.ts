@@ -8,6 +8,7 @@ import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { MarketDataService } from "../data/market-data.service";
 import { configureScriptLogging } from "./script-logging.utils";
+import { ScriptProgressBar } from "./script-progress.utils";
 import {
   isSummaryMode,
   summarizeWalkForwardResult
@@ -96,6 +97,33 @@ async function main() {
         )
       )
     );
+  const oneDayMs =
+    24 * 60 * 60 * 1000;
+  const totalWindows =
+    Math.max(
+      0,
+      Math.floor(
+        (
+          to.getTime() -
+          (
+            from.getTime() +
+            ((trainDays + validationDays) * oneDayMs) -
+            oneDayMs
+          )
+        ) /
+        (stepDays * oneDayMs)
+      ) + 1
+    );
+  const progress =
+    new ScriptProgressBar();
+
+  progress.stage(
+    `Preparing walk-forward windows (${totalWindows})...`
+  );
+  progress.start(
+    Math.max(1, totalWindows),
+    "walk-forward"
+  );
   const result =
     await walkForward.run(
       from,
@@ -103,8 +131,21 @@ async function main() {
       buildGrid(),
       trainDays,
       validationDays,
-      stepDays
+      stepDays,
+      {
+        onWindowEvaluated: (
+          _current,
+          _total,
+          window,
+          optimization
+        ) => {
+          progress.advance(
+            `window=${window.index} robust=${optimization.bestCandidate ? "yes" : "no"}`
+          );
+        }
+      }
     );
+  progress.finish("done");
   const output =
     isSummaryMode(args.summary)
       ? summarizeWalkForwardResult(

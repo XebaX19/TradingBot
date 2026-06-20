@@ -8,6 +8,7 @@ import { CandleRepository } from "../repositories/candle.repository";
 import { MarketDataService } from "../data/market-data.service";
 import { OptimizationRepository } from "../repositories/optimization.repository";
 import { configureScriptLogging } from "./script-logging.utils";
+import { ScriptProgressBar } from "./script-progress.utils";
 import {
   isSummaryMode,
   summarizeOptimizationResult
@@ -112,13 +113,44 @@ async function main() {
       ),
       new OptimizationRepository(sql)
     );
+  const grid =
+    buildGrid();
+  const totalCandidates =
+    grid.dropPercent.length *
+    grid.rsiLimit.length *
+    grid.volumeMultiplier.length *
+    grid.takeProfitPercent.length *
+    grid.stopLossPercent.length;
+  const progress =
+    new ScriptProgressBar();
+
+  progress.stage(
+    `Preparing optimization split for ${totalCandidates} candidates...`
+  );
+  progress.start(
+    totalCandidates,
+    "optimize-strategy"
+  );
   const result =
     await optimizer.optimize(
       from,
       to,
-      buildGrid(),
-      splitRatio
+      grid,
+      splitRatio,
+      {
+        onCandidateEvaluated: (
+          _current,
+          _total,
+          parameters,
+          assessment
+        ) => {
+          progress.advance(
+            `drop=${parameters.dropPercent} rsi=${parameters.rsiLimit} robust=${assessment.isRobust ? "yes" : "no"}`
+          );
+        }
+      }
     );
+  progress.finish("done");
   const output =
     isSummaryMode(args.summary)
       ? summarizeOptimizationResult(

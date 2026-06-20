@@ -6,6 +6,7 @@ import { MarketDataService } from "../data/market-data.service";
 import { SqlService } from "../database/sql.service";
 import { CandleRepository } from "../repositories/candle.repository";
 import { configureScriptLogging } from "./script-logging.utils";
+import { ScriptProgressBar } from "./script-progress.utils";
 import {
   isSummaryMode,
   summarizeValidationResult
@@ -57,17 +58,39 @@ async function main() {
       ),
       new BacktestMetricsService()
     );
+  const progress =
+    new ScriptProgressBar();
+
+  progress.stage(
+    "Preparing training/validation split..."
+  );
   const split =
     await validator.createDatasetSplit(
       from,
       to,
       splitRatio
     );
+  progress.start(
+    3,
+    "validate-strategy"
+  );
   const result =
     await validator.validateParameters(
       env.strategy,
-      split
+      split,
+      {
+        onStage: stage => {
+          const label =
+            stage === "training"
+              ? "training backtest"
+              : stage === "validation"
+                ? "validation backtest"
+                : "assessment";
+          progress.advance(label);
+        }
+      }
     );
+  progress.finish("done");
   const output =
     isSummaryMode(args.summary)
       ? summarizeValidationResult(

@@ -36,6 +36,15 @@ export interface WalkForwardResult {
   overallAssessment: "ROBUST" | "MIXED" | "WEAK";
 }
 
+export interface WalkForwardHooks {
+  onWindowEvaluated?: (
+    current: number,
+    total: number,
+    window: WalkForwardWindow,
+    optimization: OptimizationResult
+  ) => void;
+}
+
 export class WalkForwardService {
   constructor(
     private optimizer: StrategyOptimizerService
@@ -51,7 +60,8 @@ export class WalkForwardService {
     grid: StrategyParameterGrid,
     trainDays: number,
     validationDays: number,
-    stepDays: number
+    stepDays: number,
+    hooks?: WalkForwardHooks
   ): Promise<WalkForwardResult> {
     const windows =
       this.buildWindows(
@@ -63,7 +73,9 @@ export class WalkForwardService {
       );
     const results: WalkForwardResult["windows"] = [];
 
-    for (const window of windows) {
+    for (let i = 0; i < windows.length; i++) {
+      const window =
+        windows[i];
       const optimization =
         await this.optimizer.optimize(
           window.trainingFrom,
@@ -77,6 +89,12 @@ export class WalkForwardService {
         optimization,
         winner: optimization.bestCandidate
       });
+      hooks?.onWindowEvaluated?.(
+        i + 1,
+        windows.length,
+        window,
+        optimization
+      );
     }
 
     const winners =

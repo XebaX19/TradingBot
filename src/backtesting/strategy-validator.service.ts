@@ -15,6 +15,15 @@ import { BacktestMetricsService } from "./backtest-metrics.service";
 import { BacktestService } from "./backtest.service";
 import { TradeSimulator } from "./trade.simulator";
 
+export interface StrategyValidationHooks {
+  onStage?: (
+    stage:
+      | "training"
+      | "validation"
+      | "assessment"
+  ) => void;
+}
+
 export class StrategyValidatorService {
   constructor(
     private marketData: MarketDataService,
@@ -101,20 +110,24 @@ export class StrategyValidatorService {
 
   async validateParameters(
     parameters: HybridStrategyConfig,
-    split: DatasetSplit
+    split: DatasetSplit,
+    hooks?: StrategyValidationHooks
   ): Promise<ValidationAssessment> {
+    hooks?.onStage?.("training");
     const training =
       await this.runBacktest(
         parameters,
         split.trainingFrom,
         split.trainingTo
       );
+    hooks?.onStage?.("validation");
     const validation =
       await this.runBacktest(
         parameters,
         split.validationFrom,
         split.validationTo
       );
+    hooks?.onStage?.("assessment");
 
     return this.assess(
       parameters,
