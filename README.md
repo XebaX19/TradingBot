@@ -118,6 +118,12 @@ Frecuencia:
 
 - una vez por dia de forma automatica
 
+Regla de ejecucion automatica:
+
+- el worker diario reconcilia siempre el dia UTC anterior completo
+- no incluye velas del dia actual aunque ya esten cerradas
+- si hace falta reparar un rango puntual fuera de esa ventana, se usa la reconciliacion manual o importacion de historico
+
 Tabla de auditoria:
 
 - `candle_reconciliation_log`
